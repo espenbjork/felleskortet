@@ -14,7 +14,7 @@ i nettleseren** (`localStorage`), og det finnes ikke noe sted å sende den.
 | | |
 | --- | --- |
 | **Leser regninga** | PDF, regneark (`.xlsx`), CSV, TSV eller limt inn tekst |
-| **Flere fakturaer** | Legg inn regninger fra ulike kortleverandører, blandet til én kronologisk bunke |
+| **Flere fakturaer** | Velg eller slipp inn flere filer samtidig, se den samlede bunken og start når du er klar |
 | **Tidslinje** | Alt kronologisk, gruppert på måned, med filter på dato |
 | **Potter du velger selv** | Personer, felles, og «utenfor» for f.eks. jobbutgifter |
 | **Fire sveiperetninger** | → ← ↑ ↓, flere potter blir knapper under kortet |
@@ -92,11 +92,15 @@ Regninga får navn etter fila, eller «Limt inn <dato>» når den er limt. To li
 navn ville gjort både periodevalget og kryssene ubrukelige, så den andre blir
 «… (2)». Trykk på navnet i lista for å kalle den «Amex» i stedet.
 
-Etter hver import står kvitteringen øverst på importskjermen: «98
-transaksjoner funnet», og under den «68 fra SAS Mastercard og 33 fra Amex»,
-med hver regning listet med antall, datospenn og sum. Legger du til regning
-nummer to, blir appen stående på importskjermen i stedet for å hoppe videre,
-så du rekker å se at den kom inn.
+Flere filer kan velges eller slippes inn samtidig. De leses etter tur og legges
+i den samme bunken uten at sveipingen starter. Kvitteringen øverst viser for
+eksempel «98 transaksjoner funnet» og «68 fra SAS Mastercard og 30 fra Amex»,
+med hver regning listet med antall, datospenn og sum. Du kan legge til flere,
+gi regningene navn og kontrollere totalen før du trykker «Start sveipingen».
+
+Velges én fil, vises forhåndsvisningen og kolonnevalget før den legges til.
+Velges flere samtidig, brukes den automatiske tolkningen, og innbetalinger
+holdes utenfor. En fil som trenger manuelt kolonnevalg kan legges til separat.
 
 Periodevalget øverst gjelder **overalt**: sveiping, oppgjør og tidslinje ser
 den samme utvalgte bunken. Det er med vilje: med to fakturaer i bunken ville et

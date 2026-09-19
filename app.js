@@ -451,6 +451,40 @@ async function lesInnFil(fil) {
   vis(await lesFil(fil));
 }
 
+/** Flere valgte filer legges rett i bunken og starter aldri sveipingen. */
+async function lesInnFiler(filer) {
+  const liste = Array.from(filer || []);
+  if (!liste.length) return;
+  if (liste.length === 1) { await lesInnFil(liste[0]); return; }
+
+  importert = null;
+  $('#forhandsvisning').hidden = true;
+  melding(`Leser ${liste.length} filer …`);
+  const lagtTil = [];
+  const feil = [];
+  let holdtUtenfor = 0;
+
+  for (const fil of liste) {
+    const res = await lesFil(fil);
+    if (res.feil) { feil.push(`${fil.name}: ${res.feil}`); continue; }
+    const poster = res.poster.filter((p) => !p.innbetaling);
+    holdtUtenfor += res.poster.length - poster.length;
+    const resultat = leggTilResultat(res, fil.name, poster, false);
+    if (resultat.feil) feil.push(`${fil.name}: ${resultat.feil}`);
+    else lagtTil.push(resultat.faktura);
+  }
+
+  sisteFil = null; sisteRå = ''; sisteFilNavn = '';
+  tegnFakturaer();
+  visSkjerm('start');
+  const deler = [];
+  if (lagtTil.length) deler.push(`${lagtTil.length} ${lagtTil.length === 1 ? 'regning' : 'regninger'} lagt til`);
+  if (holdtUtenfor) deler.push(`${holdtUtenfor} ${holdtUtenfor === 1 ? 'innbetaling' : 'innbetalinger'} holdt utenfor`);
+  if (feil.length) deler.push(`${feil.length} ${feil.length === 1 ? 'fil kunne ikke legges til' : 'filer kunne ikke legges til'}`);
+  melding(`${deler.join('. ')}.${lagtTil.length ? ' Legg til flere eller start sveipingen når du er klar.' : ''}`,
+    feil.length ? 'feil' : 'ok');
+}
+
 function lesInnTekst(tekst, overstyr) {
   sisteRå = tekst; sisteFil = null; sisteFilNavn = '';
   vis(lesTekst(tekst, overstyr));
@@ -507,10 +541,6 @@ function tegnForhandsvisning() {
 
   tegnKolonnevalg();
   tegnMinnevalg(poster);
-  const forste = S.poster.length === 0;
-  $('#knapp-start').hidden = !forste;
-  $('#knapp-legg-til').hidden = forste;
-  $('#knapp-start').disabled = poster.length === 0;
   $('#knapp-legg-til').disabled = poster.length === 0;
 }
 
@@ -543,9 +573,9 @@ function tegnMinnevalg(poster) {
   }
 }
 
-function fakturaNavn() {
-  const grunn = sisteFilNavn
-    ? sisteFilNavn.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 40)
+function fakturaNavn(filnavn = sisteFilNavn) {
+  const grunn = filnavn
+    ? filnavn.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 40)
     : `Limt inn ${new Date().toLocaleDateString('nb-NO')}`;
   return unikt(grunn);
 }
@@ -567,26 +597,23 @@ function unikt(grunn) {
  * Legger postene til bunken. Hele fakturaen får et innholdsavtrykk, så vi
  * stopper en dobbeltimport uten å fjerne legitime, identiske enkeltkjøp.
  */
-function leggTilPoster(forste) {
-  const poster = aktuellePoster();
-  if (!poster.length) return;
-  const brukMinne = $('#bruk-minne').checked;
-
+function leggTilResultat(res, filnavn, poster, brukMinne) {
+  if (!poster.length) return { feil: 'Fant ingen utgifter å legge til.' };
   const avtrykk = fakturaFingeravtrykk(poster);
   const finnes = S.fakturaer.find((f) => f.fingeravtrykk === avtrykk);
   if (finnes) {
-    melding(`Denne fakturaen ligger inne fra før som «${finnes.navn}». Ingenting lagt til.`, 'feil');
-    return;
+    return { feil: `Ligger inne fra før som «${finnes.navn}»` };
   }
 
+  const forste = S.poster.length === 0;
   const nokler = transaksjonsNokler(poster, avtrykk);
   const nye = poster.map((p, i) => ({ ...p, delingsnokkel: nokler[i] }));
 
   const datoer = nye.map((p) => p.dato).filter(Boolean).sort();
   const faktura = {
     id: `f${S.fakturaer.length + 1}-${Math.random().toString(36).slice(2, 6)}`,
-    navn: fakturaNavn(),
-    kilde: importert.kilde,
+    navn: fakturaNavn(filnavn),
+    kilde: res.kilde,
     antall: nye.length,
     sum: ore(nye.reduce((sum, p) => sum + p.belop, 0)),
     fra: datoer[0] || null,
@@ -601,17 +628,24 @@ function leggTilPoster(forste) {
   if (forste) { S.historikk = []; S.tvist = []; S.andre = null; S.filter = 'alle'; }
   // Sto det et utvalg, ville de nye kjøpene falt utenfor uten å si fra
   S.periode = { fra: null, til: null, faktura: null };
+  return { faktura, antall: nye.length };
+}
+
+function leggTilPoster() {
+  const poster = aktuellePoster();
+  if (!poster.length) return;
+  const resultat = leggTilResultat(importert, sisteFilNavn, poster, $('#bruk-minne').checked);
+  if (resultat.feil) {
+    melding(`Denne fakturaen ${resultat.feil}. Ingenting lagt til.`, 'feil');
+    return;
+  }
+
   importert = null;
   sisteFilNavn = '';
   $('#forhandsvisning').hidden = true;
   $('#lim-inn').value = '';
-  melding('', '');
+  melding(`${resultat.faktura.navn} er lagt til med ${resultat.antall} kjøp. Legg til flere eller start sveipingen når du er klar.`, 'ok');
   tegnFakturaer();
-
-  // Første regning: rett i gang med å sveipe, det er det du kom for.
-  // Regning nummer to: bli stående, så du ser at den faktisk kom inn og
-  // hva bunken nå består av. Hopper vi videre her, rekker du aldri å se det.
-  if (forste) { visSkjerm('sveip'); return; }
   visSkjerm('start');
   // Kvitteringen står øverst på importskjermen, så den er i syne uten rulling
   const kvi = $('#kvittering');
@@ -1505,8 +1539,7 @@ function koble() {
   // Filvelger og slippsone
   const sone = $('#dropzone');
   $('#fil-input').addEventListener('change', async (e) => {
-    const fil = e.target.files && e.target.files[0];
-    if (fil) await lesInnFil(fil);
+    if (e.target.files && e.target.files.length) await lesInnFiler(e.target.files);
     e.target.value = '';
   });
   ['dragenter', 'dragover'].forEach((n) => sone.addEventListener(n, (e) => {
@@ -1516,8 +1549,8 @@ function koble() {
     e.preventDefault(); sone.classList.remove('is-over');
   }));
   sone.addEventListener('drop', async (e) => {
-    const fil = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (fil) await lesInnFil(fil);
+    const filer = e.dataTransfer && e.dataTransfer.files;
+    if (filer && filer.length) await lesInnFiler(filer);
     else if (e.dataTransfer) lesInnTekst(e.dataTransfer.getData('text/plain'));
   });
 
@@ -1529,7 +1562,7 @@ function koble() {
     tegnPotter();
     $('#lim-inn').value = DEMO;
     lesInnTekst(DEMO);
-    melding('Eksempeldata lastet, med en jobb-pott på kjøpet. Trykk «Start sveipingen».', 'ok');
+    melding('Eksempeldata lastet, med en jobb-pott på kjøpet. Trykk «Legg til regninga».', 'ok');
   });
 
   ['#kol-dato', '#kol-tekst', '#kol-belop'].forEach((id) => $(id).addEventListener('change', async () => {
@@ -1543,8 +1576,8 @@ function koble() {
     $('#kolonnevalg').open = true;
   }));
   $('#ta-med-innbetalinger').addEventListener('change', tegnForhandsvisning);
-  $('#knapp-start').addEventListener('click', () => leggTilPoster(true));
-  $('#knapp-legg-til').addEventListener('click', () => leggTilPoster(false));
+  $('#knapp-legg-til').addEventListener('click', leggTilPoster);
+  $('#knapp-start-sveip').addEventListener('click', () => visSkjerm('sveip'));
 
   // Klikkbar navigasjon mellom skjermene
   $$('.steps__item').forEach((b) => b.addEventListener('click', () => {

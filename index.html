@@ -90,7 +90,10 @@
           <span class="kvittering__fra" id="kvittering-fra"></span>
         </p>
         <ul class="fakturaer" id="fakturaer"></ul>
-        <p class="panel__hint">Legg til flere fakturaer under. Samme faktura blir ikke lagt inn to ganger.</p>
+        <p class="panel__hint">Legg til så mange fakturaer du vil. Sveipingen starter først når du ber om det.</p>
+        <div class="panel__actions">
+          <button class="btn btn--primary btn--big" type="button" id="knapp-start-sveip">Start sveipingen →</button>
+        </div>
       </div>
       <div class="panel">
         <h2 class="panel__title">Pottene</h2>
@@ -116,16 +119,16 @@
       <div class="panel panel--drop" id="slippsone">
         <h2 class="panel__title">Legg inn regninga</h2>
         <p class="panel__hint">
-          Dra inn fakturaen banken gir deg, PDF eller regneark, eller marker
-          regninga i nettbanken og lim den inn. Kortsveip finner ut av datoer,
-          tekst og beløp selv, og takler flere kortleverandører side om side.
+          Velg eller dra inn én eller flere fakturaer fra banken, eller marker
+          en regning i nettbanken og lim den inn. Kortsveip legger alt i én
+          bunke før du starter sveipingen.
         </p>
 
         <div class="dropzone" id="dropzone">
-          <p class="dropzone__text">Dra fila hit</p>
+          <p class="dropzone__text">Dra filene hit</p>
           <p class="dropzone__or">pdf, xlsx, csv eller txt</p>
-          <label class="btn btn--primary" for="fil-input">Velg fil</label>
-          <input class="visually-hidden" type="file" id="fil-input"
+          <label class="btn btn--primary" for="fil-input">Velg filer</label>
+          <input class="visually-hidden" type="file" id="fil-input" multiple
                  accept=".pdf,.xlsx,.csv,.txt,.tsv,application/pdf,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
           <p class="dropzone__hint">Gamle .xls-filer må lagres som .xlsx eller CSV først.</p>
         </div>
@@ -182,8 +185,7 @@
         </label>
 
         <div class="panel__actions">
-          <button class="btn btn--primary btn--big" type="button" id="knapp-start">Start sveipingen →</button>
-          <button class="btn btn--primary btn--big" type="button" id="knapp-legg-til" hidden>Legg til i bunken →</button>
+          <button class="btn btn--primary btn--big" type="button" id="knapp-legg-til">Legg til regninga →</button>
           <button class="btn btn--ghost" type="button" id="knapp-avbryt">Nullstill</button>
         </div>
       </div>
