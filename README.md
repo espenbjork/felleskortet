@@ -6,8 +6,8 @@ med kredittkortregninga og en kalkulator den 20. hver måned.
 🔗 https://espenbjork.github.io/kortsveip/
 
 Ren HTML, CSS og JS. Ingen rammeverk, ingen byggesteg, ingen server, ingen
-avhengigheter. **All kontodata blir liggende i nettleseren** (`localStorage`),
-og det finnes ikke noe sted å sende den.
+produksjonsavhengigheter eller eksterne skrifter. **All kontodata blir liggende
+i nettleseren** (`localStorage`), og det finnes ikke noe sted å sende den.
 
 ## Hva den gjør
 
@@ -79,8 +79,9 @@ opp som sitt eget kort i oppgjøret.
 ### Flere fakturaer og perioden
 
 Bunken kan inneholde regninger fra flere kortleverandører. Hvert kjøp husker
-hvilken faktura det kom fra, og samme fil kan slippes inn to ganger uten å
-telle dobbelt: kjøp med samme dato, beløp og tekst hoppes over.
+hvilken faktura det kom fra. Hele fakturaen får et innholdsavtrykk, så samme
+fil stoppes ved ny import, mens to legitime kjøp med samme dato, beløp og tekst
+beholdes.
 
 Sveipebunken er **kronologisk på tvers av regningene**, ikke én regning av
 gangen. Har du SAS Mastercard og Amex for samme måned, sveiper du august én
@@ -125,9 +126,11 @@ seg.
 `#`-delen sendes aldri til noen server, så lenka kan gå i en melding uten at
 tallene tar veien om noen andre.
 
-Lenka inneholder **bare** fordelingen, ikke utgiftene: pottenavn, ett tegn per
-utgift, og et kort avtrykk av regninga. Begge må ha lastet inn den samme fila.
-Er avtrykket et annet, sier appen fra i stedet for å blande to regninger.
+Lenka inneholder **bare** fordelingen, ikke utgiftene: pottenavn, en stabil
+transaksjonsnøkkel, ett tegn per utgift og et kort avtrykk av regninga. Nøklene
+gjør at to personer kan importere flere fakturaer i ulik rekkefølge uten at
+valgene havner på feil kjøp. Begge må ha lastet inn de samme regningene. Er
+avtrykket et annet, sier appen fra i stedet for å blande dem.
 
 Når den andres lenke leses inn:
 
@@ -144,6 +147,12 @@ Når den andres lenke leses inn:
 | Pottfarger | `PALETT` i `app.js` |
 | Kolonnegjenkjenning | `HODE` i `les.js` |
 | Spalteavstand i PDF-er | `GAP` i `sorterSpaltevis` i `les.js` |
+
+## Lokale data
+
+«Ny regning» fjerner regning og fordeling, men beholder potter og butikkminne.
+«Slett alle lokale data» nederst på siden fjerner også dette minnet. Appen
+bruker systemskrifter og gjør ingen eksterne nettverkskall.
 
 ## Taster
 

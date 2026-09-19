@@ -19,6 +19,13 @@
    ============================================================ */
 'use strict';
 
+const {
+  fakturaFingeravtrykk,
+  fordelAndeler,
+  hash: kortHash,
+  transaksjonsNokler,
+} = window.KortsveipKjerne;
+
 /* ─── 1. KONFIG ─────────────────────────────────────────── */
 
 const KONFIG = {
@@ -223,6 +230,7 @@ function hentLagret() {
     S.jeg = d.jeg || null;
     S.betaler = d.betaler || null;
     S.poster = d.poster;
+    sikreDelingsnokler();
     S.tvist = d.tvist || [];
     S.andre = d.andre || null;
     S.skjerm = ['oppgjor', 'tidslinje'].includes(d.skjerm) ? d.skjerm : 'sveip';
@@ -232,6 +240,23 @@ function hentLagret() {
 
 const finn = (id) => S.poster.find((p) => p.id === id);
 const erTvist = (id) => S.tvist.includes(id);
+
+/** Gir også eldre, lokalt lagrede regninger stabile nøkler for deling. */
+function sikreDelingsnokler() {
+  S.fakturaer.forEach((f) => {
+    const poster = S.poster.filter((p) => p.faktura === f.id);
+    if (!poster.length) return;
+    f.fingeravtrykk = f.fingeravtrykk || fakturaFingeravtrykk(poster);
+    const nokler = transaksjonsNokler(poster, f.fingeravtrykk);
+    poster.forEach((post, i) => { post.delingsnokkel = post.delingsnokkel || nokler[i]; });
+  });
+  const utenFaktura = S.poster.filter((p) => !p.delingsnokkel);
+  if (utenFaktura.length) {
+    const avtrykk = fakturaFingeravtrykk(utenFaktura);
+    const nokler = transaksjonsNokler(utenFaktura, avtrykk);
+    utenFaktura.forEach((post, i) => { post.delingsnokkel = nokler[i]; });
+  }
+}
 
 /** Er posten innenfor perioden som er valgt? */
 /**
@@ -518,9 +543,6 @@ function tegnMinnevalg(poster) {
   }
 }
 
-/** Nøkkel for å kjenne igjen et kjøp vi allerede har lagt inn. */
-const postNokkel = (p) => `${p.dato}|${p.belop}|${p.tekst}`;
-
 function fakturaNavn() {
   const grunn = sisteFilNavn
     ? sisteFilNavn.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim().slice(0, 40)
@@ -542,22 +564,23 @@ function unikt(grunn) {
 }
 
 /**
- * Legger postene til bunken. Er noe lagt inn fra før, hoppes det over,
- * så samme faktura kan slippes inn to ganger uten å telle dobbelt.
+ * Legger postene til bunken. Hele fakturaen får et innholdsavtrykk, så vi
+ * stopper en dobbeltimport uten å fjerne legitime, identiske enkeltkjøp.
  */
 function leggTilPoster(forste) {
   const poster = aktuellePoster();
   if (!poster.length) return;
   const brukMinne = $('#bruk-minne').checked;
 
-  const finnes = new Set(S.poster.map(postNokkel));
-  const nye = poster.filter((p) => !finnes.has(postNokkel(p)));
-  const duplikater = poster.length - nye.length;
-
-  if (!nye.length) {
-    melding(`Alle ${poster.length} kjøpene ligger inne fra før. Ingenting lagt til.`, 'feil');
+  const avtrykk = fakturaFingeravtrykk(poster);
+  const finnes = S.fakturaer.find((f) => f.fingeravtrykk === avtrykk);
+  if (finnes) {
+    melding(`Denne fakturaen ligger inne fra før som «${finnes.navn}». Ingenting lagt til.`, 'feil');
     return;
   }
+
+  const nokler = transaksjonsNokler(poster, avtrykk);
+  const nye = poster.map((p, i) => ({ ...p, delingsnokkel: nokler[i] }));
 
   const datoer = nye.map((p) => p.dato).filter(Boolean).sort();
   const faktura = {
@@ -568,6 +591,7 @@ function leggTilPoster(forste) {
     sum: ore(nye.reduce((sum, p) => sum + p.belop, 0)),
     fra: datoer[0] || null,
     til: datoer[datoer.length - 1] || null,
+    fingeravtrykk: avtrykk,
   };
   S.fakturaer.push(faktura);
   S.poster = S.poster.concat(nye.map((p) => ({
@@ -581,7 +605,7 @@ function leggTilPoster(forste) {
   sisteFilNavn = '';
   $('#forhandsvisning').hidden = true;
   $('#lim-inn').value = '';
-  melding(duplikater ? `${nye.length} kjøp lagt til. ${duplikater} lå inne fra før.` : '', duplikater ? 'ok' : '');
+  melding('', '');
   tegnFakturaer();
 
   // Første regning: rett i gang med å sveipe, det er det du kom for.
@@ -1115,27 +1139,30 @@ const B64 = {
   },
 };
 
-/** Kort avtrykk av selve regninga, så vi ser om vi snakker om den samme. */
+/** Avtrykk av stabile transaksjonsnøkler, uavhengig av importrekkefølgen. */
 function fingeravtrykk(poster) {
-  const s = poster.map((p) => `${p.dato}|${p.belop}`).sort().join(';');
-  let h = 0x811c9dc5;
-  for (let i = 0; i < s.length; i += 1) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
-  return (h >>> 0).toString(36);
+  return kortHash(poster.map((p) => p.delingsnokkel || '').sort().join(';'));
+}
+
+/** Avtrykket fra versjon 2 beholdes bare for å kunne lese gamle lenker. */
+function fingeravtrykkV2(poster) {
+  return kortHash(poster.map((p) => `${p.dato}|${p.belop}`).sort().join(';'));
 }
 
 const TEGN = '0123456789abcdefghijklmnopqrstuvwxyz';
 
 function lagDelingskode() {
-  const tild = S.poster.map((p) => {
+  sikreDelingsnokler();
+  const fordeling = S.poster.map((p) => {
     const i = S.potter.findIndex((x) => x.id === p.pott);
-    return i >= 0 && i < TEGN.length ? TEGN[i] : '-';
-  }).join('');
+    return [p.delingsnokkel, i >= 0 && i < TEGN.length ? TEGN[i] : '-'];
+  });
   return B64.inn(JSON.stringify({
-    v: 2,
+    v: 3,
     fp: fingeravtrykk(S.poster),
     fra: S.jeg ? pottNavn(S.jeg) : 'Den andre',
     potter: S.potter.map((p) => ({ n: p.navn, t: p.type })),
-    tild,
+    fordeling,
   }));
 }
 
@@ -1152,12 +1179,30 @@ function brukDelingskode(rå) {
   const kode = String(rå).trim().replace(/^.*#deling=/, '');
   let d;
   try { d = JSON.parse(B64.ut(kode)); } catch { return { feil: 'Koden ser ikke riktig ut. Kopier hele lenka på nytt.' }; }
-  if (!d || !d.tild || !Array.isArray(d.potter)) return { feil: 'Koden mangler innhold.' };
+  const erV3 = d && d.v === 3 && Array.isArray(d.fordeling);
+  const erV2 = d && typeof d.tild === 'string';
+  if (!d || (!erV3 && !erV2) || !Array.isArray(d.potter)) return { feil: 'Koden mangler innhold.' };
   if (!S.poster.length) return { feil: 'Last inn den samme regninga først, så kan dere sammenlikne.' };
-  if (d.fp !== fingeravtrykk(S.poster)) {
-    return { feil: 'Dette er en annen regning enn den du har lastet inn. Begge må bruke samme fil.' };
+  sikreDelingsnokler();
+  const lokaltAvtrykk = erV3 ? fingeravtrykk(S.poster) : fingeravtrykkV2(S.poster);
+  if (d.fp !== lokaltAvtrykk) {
+    return { feil: 'Dette er andre regninger enn dem du har lastet inn. Begge må bruke de samme filene.' };
   }
-  if (d.tild.length !== S.poster.length) return { feil: 'Antall utgifter stemmer ikke. Begge må bruke samme fil.' };
+  if (erV2 && d.tild.length !== S.poster.length) return { feil: 'Antall utgifter stemmer ikke. Begge må bruke de samme filene.' };
+
+  let etterNokkel = null;
+  if (erV3) {
+    if (d.fordeling.length !== S.poster.length) return { feil: 'Antall utgifter stemmer ikke. Begge må bruke de samme filene.' };
+    etterNokkel = new Map(d.fordeling.filter((rad) => Array.isArray(rad) && rad.length === 2));
+    if (etterNokkel.size !== S.poster.length || S.poster.some((p) => !etterNokkel.has(p.delingsnokkel))) {
+      return { feil: 'Delingslenka mangler noen av utgiftene. Kopier en ny lenke og prøv igjen.' };
+    }
+  }
+  const delteTegn = erV3 ? Array.from(etterNokkel.values()) : Array.from(d.tild);
+  if (d.potter.length > TEGN.length || delteTegn.some((tegn) => tegn !== '-'
+    && (TEGN.indexOf(tegn) < 0 || !d.potter[TEGN.indexOf(tegn)]))) {
+    return { feil: 'Delingslenka inneholder ukjente potter. Kopier en ny lenke og prøv igjen.' };
+  }
 
   // Potter den andre har, men ikke du, legges til.
   let nye = 0;
@@ -1172,7 +1217,7 @@ function brukDelingskode(rå) {
   let enige = 0; let uenige = 0; let hentet = 0;
   const tvist = [];
   S.poster.forEach((post, i) => {
-    const tegn = d.tild[i];
+    const tegn = erV3 ? etterNokkel.get(post.delingsnokkel) : d.tild[i];
     const idx = TEGN.indexOf(tegn);
     if (idx < 0 || !d.potter[idx]) return;
     const navn = d.potter[idx].n;
@@ -1223,21 +1268,14 @@ function beregn() {
   const utenforSum = ore(utenfor.reduce((s, p) => s + p.sum, 0));
 
   const aaDele = ore(pers.reduce((s, p) => s + perPott[p.id].sum, 0) + fellesSum);
-  const andeler = pers.map((p, i) => {
-    const egne = perPott[p.id].sum;
-    const del = i === pers.length - 1 ? null : ore(fellesSum / pers.length);
-    return { pott: p, egne, antall: perPott[p.id].antall, del };
-  });
-  // Siste person får resten, så de to (eller flere) summene treffer nøyaktig.
-  let brukt = 0;
-  andeler.forEach((a, i) => {
-    if (i < andeler.length - 1) { a.betaler = ore(a.egne + a.del); brukt = ore(brukt + a.betaler); }
-  });
-  if (andeler.length) {
-    const siste = andeler[andeler.length - 1];
-    siste.betaler = ore(aaDele - brukt);
-    siste.del = ore(siste.betaler - siste.egne);
-  }
+  const fordelte = fordelAndeler(pers.map((p) => ({ id: p.id, egne: perPott[p.id].sum })), fellesSum);
+  const andeler = pers.map((p, i) => ({
+    pott: p,
+    egne: perPott[p.id].sum,
+    antall: perPott[p.id].antall,
+    del: fordelte[i].del,
+    betaler: fordelte[i].betaler,
+  }));
 
   return {
     perPott, usortert, fellesSum, utenfor, utenforSum, aaDele, andeler,
@@ -1587,6 +1625,27 @@ function koble() {
     $('#forhandsvisning').hidden = true;
     melding('');
     visSkjerm('start');
+  });
+
+  // Full personvernrydding, også av butikkminnet som «Ny regning» beholder.
+  $('#knapp-slett-alt').addEventListener('click', () => {
+    if (!window.confirm('Slette alle regninger, fordelinger, potter og innlærte butikkvalg fra denne nettleseren? Dette kan ikke angres.')) return;
+    S.fakturaer = []; S.periode = { fra: null, til: null, faktura: null };
+    S.poster = []; S.historikk = []; S.tvist = []; S.andre = null;
+    S.filter = 'alle'; S.jeg = null; S.betaler = null;
+    pottTeller = 0; S.potter = standardPotter();
+    minne = {}; importert = null; sisteRå = ''; sisteFil = null; sisteFilNavn = '';
+    $('#lim-inn').value = '';
+    $('#kode-inn').value = '';
+    $('#forhandsvisning').hidden = true;
+    $('#delings-svar').hidden = true;
+    tegnPotter(); tegnFakturaer(); melding('Alle lokale data er slettet.', 'ok');
+    visSkjerm('start');
+    try {
+      localStorage.removeItem(KONFIG.lagerNokkel);
+      localStorage.removeItem(KONFIG.minneNokkel);
+    } catch { /* appen er allerede nullstilt i minnet */ }
+    if (location.hash) history.replaceState(null, '', location.pathname);
   });
 
   // Hurtigtaster

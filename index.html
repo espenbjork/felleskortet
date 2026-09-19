@@ -27,10 +27,6 @@
   <link rel="canonical" href="https://espenbjork.github.io/kortsveip/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="styles.css?v=dev">
 </head>
 <body>
@@ -94,7 +90,7 @@
           <span class="kvittering__fra" id="kvittering-fra"></span>
         </p>
         <ul class="fakturaer" id="fakturaer"></ul>
-        <p class="panel__hint">Legg til flere fakturaer under. Kjøp som allerede er lagt inn, hoppes over.</p>
+        <p class="panel__hint">Legg til flere fakturaer under. Samme faktura blir ikke lagt inn to ganger.</p>
       </div>
       <div class="panel">
         <h2 class="panel__title">Pottene</h2>
@@ -130,7 +126,8 @@
           <p class="dropzone__or">pdf, xlsx, csv eller txt</p>
           <label class="btn btn--primary" for="fil-input">Velg fil</label>
           <input class="visually-hidden" type="file" id="fil-input"
-                 accept=".pdf,.xlsx,.xls,.csv,.txt,.tsv,application/pdf,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                 accept=".pdf,.xlsx,.csv,.txt,.tsv,application/pdf,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+          <p class="dropzone__hint">Gamle .xls-filer må lagres som .xlsx eller CSV først.</p>
         </div>
 
         <p class="field">
@@ -255,8 +252,8 @@
         <p class="panel__hint">
           Har dere sveipet hver for dere? Del lenka di, så ser den andre hva
           dere er enige om, og hva dere må snakke om. Lenka inneholder bare
-          fordelingen, ikke utgiftene, så begge må ha lastet inn den samme
-          regninga.
+          fordelingen, ikke utgiftene, så begge må ha lastet inn de samme
+          regningene.
         </p>
         <div class="panel__actions">
           <button class="btn btn--primary" type="button" id="knapp-del">Kopier delingslenke</button>
@@ -297,8 +294,10 @@
       Bygget av <a href="https://espenbjork.github.io/">Espen Bjørk</a> ·
       <a href="https://github.com/espenbjork/espenbjork.github.io/tree/main/kortsveip">Kildekode ↗</a>
     </p>
+    <button class="bunn__slett" type="button" id="knapp-slett-alt">Slett alle lokale data</button>
   </footer>
 
+  <script src="kjerne.js?v=dev" defer></script>
   <script src="les.js?v=dev" defer></script>
   <script src="app.js?v=dev" defer></script>
 </body>

@@ -480,8 +480,12 @@ async function lesFil(fil, overstyr) {
     }
   }
 
-  const erRegneark = /\.xlsx?$/i.test(fil.name)
-    || /spreadsheet|excel/i.test(fil.type || '');
+  if (/\.xls$/i.test(fil.name) && !/\.xlsx$/i.test(fil.name)) {
+    return { feil: 'Gamle .xls-filer støttes ikke. Lagre fila som .xlsx eller CSV og prøv igjen.' };
+  }
+
+  const erRegneark = /\.xlsx$/i.test(fil.name)
+    || /openxmlformats-officedocument\.spreadsheetml/i.test(fil.type || '');
 
   if (erRegneark) {
     try {
@@ -707,4 +711,9 @@ function lesPdfTekst(linjer) {
     poster.push(eier ? { dato, tekst: rest, belop, eier } : { dato, tekst: rest, belop });
   }
   return poster.length ? { poster, kol: null, kilde: 'pdf' } : null;
+}
+
+// Gjør de rene tekstrutinene tilgjengelige for den lille Node-testpakken.
+if (typeof module === 'object' && module.exports) {
+  module.exports = { foredle, lesTekst, tilDato, tilTall };
 }

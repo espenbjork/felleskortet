@@ -31,8 +31,8 @@
   --skip:#8a988e;     /* hoppet over */
 
   /* Skrift */
-  --serif:'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --sans:'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --serif:Iowan Old Style, Baskerville, Georgia, 'Times New Roman', serif;
+  --sans:ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* Mål */
   --maxw:820px;
@@ -185,6 +185,7 @@ main{ flex:1; width:min(100%, var(--maxw)); margin-inline:auto; padding:0 var(--
 .dropzone.is-over{ border-color:var(--a); background:color-mix(in srgb, var(--a) 10%, var(--paper-2)); }
 .dropzone__text{ font-size:1.05rem; }
 .dropzone__or{ font-size:.8rem; color:var(--ink-3); margin:.4rem 0 .6rem; }
+.dropzone__hint{ max-width:24rem; margin:.65rem auto 0; font-size:.75rem; color:var(--ink-3); }
 
 /* ============================================================
    KNAPPER
@@ -418,8 +419,14 @@ main{ flex:1; width:min(100%, var(--maxw)); margin-inline:auto; padding:0 var(--
 .bunn{
   width:min(100%, var(--maxw)); margin-inline:auto;
   padding:1.2rem var(--gutter) 2rem;
+  display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap;
   font-size:.82rem; color:var(--ink-3); border-top:1px solid var(--line);
 }
+.bunn__slett{
+  padding:0; border:0; background:none; color:inherit; cursor:pointer;
+  text-decoration:underline; text-underline-offset:3px;
+}
+.bunn__slett:hover{ color:#8a3a3a; }
 
 /* ============================================================
    RESPONSIVT + BEVEGELSE
