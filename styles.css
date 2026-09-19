@@ -1,0 +1,578 @@
+/* ============================================================
+   KORTSVEIP, designsystem
+   Arver paletten fra porteføljesiden, men står på egne bein.
+   ============================================================ */
+:root{
+  /* Flater */
+  --paper:#e6e9df;
+  --paper-2:#eef1e8;
+  --card:#fbfaf5;
+
+  /* Blekk */
+  --ink:#16302a;
+  --ink-2:#4c5f55;
+  --ink-3:#8a988e;
+
+  /* Linjer */
+  --line:rgba(22,48,42,.14);
+  --line-2:rgba(22,48,42,.26);
+
+  /* Aksent + dypgrønt panel */
+  --accent:#bd6a39;
+  --accent-ink:#f1efe5;
+  --brg:#0d3527;
+  --brg-2:#0e3a2b;
+  --on-green:#e8ebe0;
+
+  /* Bøttefarger. Endre her, resten følger etter. */
+  --a:#2f6f5e;        /* person 1 */
+  --b:#bd6a39;        /* person 2 */
+  --shared:#4a5d8a;   /* felles   */
+  --skip:#8a988e;     /* hoppet over */
+
+  /* Skrift */
+  --serif:'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --sans:'Space Grotesk', system-ui, -apple-system, sans-serif;
+
+  /* Mål */
+  --maxw:820px;
+  --gutter:clamp(1rem, 4vw, 2.5rem);
+  --ease:cubic-bezier(.22,.61,.36,1);
+  --radius:14px;
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+*,*::before,*::after{ box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; }
+
+body{
+  margin:0;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
+  font-family:var(--sans);
+  font-size:clamp(1rem, .95rem + .2vw, 1.0625rem);
+  line-height:1.55;
+  color:var(--ink);
+  background:var(--paper);
+  background-image:radial-gradient(var(--line) .5px, transparent .5px);
+  background-size:22px 22px;
+  -webkit-font-smoothing:antialiased;
+}
+
+h1,h2,h3{ font-family:var(--serif); font-weight:400; line-height:1.06; margin:0; }
+p{ margin:0; }
+ul,ol{ margin:0; padding:0; list-style:none; }
+a{ color:inherit; text-decoration:underline; text-underline-offset:3px; }
+a:hover{ color:var(--accent); }
+button,input,select,textarea{ font:inherit; color:inherit; }
+
+:focus-visible{ outline:2.5px solid var(--accent); outline-offset:3px; border-radius:6px; }
+
+.visually-hidden{
+  position:absolute; width:1px; height:1px; margin:-1px;
+  padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+
+.skip-link{
+  position:absolute; left:-9999px; top:0; z-index:100;
+  background:var(--ink); color:var(--paper); padding:.6rem 1rem;
+}
+.skip-link:focus{ left:0; }
+
+/* ============================================================
+   TOPPLINJE + STEG
+   ============================================================ */
+.topbar{
+  display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+  width:min(100%, var(--maxw)); margin-inline:auto;
+  padding:1rem var(--gutter);
+}
+.topbar__brand{
+  display:inline-flex; align-items:center; gap:.5rem;
+  font-family:var(--serif); font-size:1.4rem; text-decoration:none;
+}
+.topbar__mark{
+  width:1.1rem; height:.78rem; border-radius:3px;
+  background:linear-gradient(105deg, var(--b) 45%, var(--a) 45%);
+  box-shadow:0 1px 0 rgba(0,0,0,.15);
+}
+.topbar__reset{
+  margin-left:auto; background:none; border:1px solid var(--line-2);
+  border-radius:999px; padding:.35rem .9rem; font-size:.85rem; cursor:pointer;
+  white-space:nowrap;
+}
+.topbar__reset:hover{ border-color:var(--accent); color:var(--accent); }
+
+/* Stegene faller ned på egen rad når det blir trangt. */
+.steps{ display:flex; gap:.35rem; flex-wrap:wrap; font-size:.78rem; letter-spacing:.02em; order:3; width:100%; }
+@media (min-width:660px){ .steps{ order:0; width:auto; } }
+.steps__item{
+  color:var(--ink-3); border:1px solid transparent;
+  padding:.2rem .6rem; border-radius:999px; white-space:nowrap;
+}
+.steps__item[aria-current="step"]{
+  color:var(--brg); border-color:var(--line-2); background:var(--paper-2);
+}
+.steps__item[data-done]{ color:var(--a); }
+
+/* ============================================================
+   SKJERMER
+   ============================================================ */
+main{ flex:1; width:min(100%, var(--maxw)); margin-inline:auto; padding:0 var(--gutter) 3rem; }
+.screen{ display:flex; flex-direction:column; gap:1.25rem; }
+[hidden]{ display:none !important; }
+
+.intro{ padding:1rem 0 .25rem; }
+.intro__title{ font-size:clamp(2.2rem, 7vw, 3.4rem); }
+.intro__lede{ margin-top:.9rem; color:var(--ink-2); max-width:44ch; }
+.intro__privacy{
+  margin-top:1rem; font-size:.88rem; color:var(--ink-2);
+  border-left:3px solid var(--a); padding-left:.8rem; max-width:52ch;
+}
+
+/* ============================================================
+   PANELER OG SKJEMA
+   ============================================================ */
+.panel{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:1.25rem clamp(1rem,3vw,1.5rem);
+  box-shadow:0 1px 2px rgba(22,48,42,.05);
+}
+.panel__title{ font-size:1.5rem; }
+.panel__hint{ margin-top:.45rem; font-size:.9rem; color:var(--ink-2); }
+.panel__actions{ display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1.1rem; }
+
+.field-row{ display:flex; gap:.9rem; flex-wrap:wrap; margin-top:.9rem; }
+.field-row .field{ flex:1 1 12rem; }
+.field-row--three .field{ flex:1 1 8rem; }
+
+.field{ display:flex; flex-direction:column; gap:.3rem; }
+.field__label{ font-size:.8rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); }
+.field__input{
+  width:100%; padding:.6rem .75rem;
+  background:var(--paper-2); border:1px solid var(--line-2);
+  border-radius:9px; font-size:1rem;
+}
+.field__input:focus{ background:#fff; }
+.field__input--area{ resize:vertical; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.85rem; }
+
+.fieldset{ margin:1.1rem 0 0; padding:0; border:0; }
+.fieldset__legend{ font-size:.8rem; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-3); padding:0; }
+.fieldset__hint{ font-size:.85rem; color:var(--ink-2); margin-top:.15rem; }
+.radios{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.6rem; }
+.radio{
+  display:inline-flex; align-items:center; gap:.45rem; cursor:pointer;
+  border:1px solid var(--line-2); border-radius:999px; padding:.35rem .85rem;
+  font-size:.92rem; background:var(--paper-2);
+}
+.radio:has(input:checked){ border-color:var(--brg); background:var(--brg); color:var(--on-green); }
+.radio input{ accent-color:var(--accent); }
+
+.sjekk{ display:flex; align-items:center; gap:.5rem; margin-top:.7rem; font-size:.9rem; cursor:pointer; }
+.sjekk input{ accent-color:var(--accent); width:1.05rem; height:1.05rem; }
+
+/* Slippsone */
+.dropzone{
+  margin-top:1rem; padding:1.6rem 1rem; text-align:center;
+  border:2px dashed var(--line-2); border-radius:var(--radius);
+  background:var(--paper-2); transition:border-color .15s, background .15s;
+}
+.dropzone.is-over{ border-color:var(--a); background:color-mix(in srgb, var(--a) 10%, var(--paper-2)); }
+.dropzone__text{ font-size:1.05rem; }
+.dropzone__or{ font-size:.8rem; color:var(--ink-3); margin:.4rem 0 .6rem; }
+
+/* ============================================================
+   KNAPPER
+   ============================================================ */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:.4rem;
+  padding:.55rem 1.1rem; border-radius:999px; border:1px solid transparent;
+  font-size:.95rem; font-weight:500; cursor:pointer; background:none;
+  transition:transform .12s var(--ease), background .15s, color .15s, border-color .15s;
+}
+.btn:active{ transform:translateY(1px); }
+.btn:disabled{ opacity:.4; cursor:not-allowed; }
+.btn--primary{ background:var(--brg); color:var(--on-green); }
+.btn--primary:hover:not(:disabled){ background:var(--brg-2); color:#fff; }
+.btn--ghost{ border-color:var(--line-2); color:var(--ink-2); }
+.btn--ghost:hover:not(:disabled){ border-color:var(--accent); color:var(--accent); }
+.btn--big{ padding:.75rem 1.5rem; font-size:1.05rem; }
+
+.melding{ margin-top:.85rem; font-size:.9rem; color:var(--ink-2); min-height:1.2em; }
+.melding[data-type="feil"]{ color:#a33a2a; }
+.melding[data-type="ok"]{ color:var(--a); }
+
+/* ============================================================
+   FORHÅNDSVISNING
+   ============================================================ */
+.kolonner{ margin-top:.8rem; font-size:.9rem; }
+.kolonner summary{ cursor:pointer; color:var(--ink-2); }
+.preview{ margin-top:.9rem; display:flex; flex-direction:column; gap:.1rem; font-size:.9rem; }
+.preview li{
+  display:flex; gap:.75rem; align-items:baseline;
+  padding:.4rem 0; border-bottom:1px solid var(--line);
+}
+.preview__dato{ color:var(--ink-3); font-size:.8rem; flex:0 0 3.6rem; }
+.preview__tekst{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.preview__belop{ font-variant-numeric:tabular-nums; font-weight:500; }
+.preview__note{ margin-top:.7rem; font-size:.85rem; color:var(--ink-2); }
+
+/* ============================================================
+   SVEIPESKJERM
+   ============================================================ */
+.framdrift{ display:flex; flex-direction:column; gap:.4rem; }
+.framdrift__bar{ height:5px; background:var(--line); border-radius:999px; overflow:hidden; }
+.framdrift__fill{
+  display:block; height:100%; width:0%;
+  background:linear-gradient(90deg, var(--a), var(--shared));
+  transition:width .35s var(--ease);
+}
+.framdrift__text{
+  display:flex; justify-content:space-between; gap:1rem;
+  font-size:.85rem; color:var(--ink-2); font-variant-numeric:tabular-nums;
+}
+
+.scene{
+  position:relative;
+  height:clamp(310px, 52vh, 430px);
+  display:grid; place-items:center;
+  border-radius:calc(var(--radius) + 6px);
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--brg-2), var(--brg) 70%);
+  overflow:hidden;
+  touch-action:pan-y;
+}
+/* Fargeglød i kantene når du drar mot en side */
+.scene__zone{
+  position:absolute; top:0; bottom:0; width:45%; pointer-events:none;
+  opacity:0; transition:opacity .12s linear;
+}
+/* Lysere enn bøttefargene, ellers forsvinner grønt i det grønne bakteppet. */
+.scene__zone--b{ left:0;  background:linear-gradient(90deg, rgba(231,145,86,.6), transparent); }
+.scene__zone--a{ right:0; background:linear-gradient(270deg, rgba(104,210,169,.55), transparent); }
+
+.stack{ position:relative; width:min(88%, 330px); height:100%; }
+
+.kort{
+  position:absolute; inset:auto 0; top:50%;
+  min-height:min(300px, 78%);
+  display:flex; flex-direction:column; gap:.25rem;
+  padding:1.4rem 1.3rem 1.2rem;
+  background:var(--card);
+  border-radius:18px;
+  box-shadow:0 14px 30px rgba(0,0,0,.28), 0 2px 4px rgba(0,0,0,.2);
+  transform:translateY(-50%);
+  transform-origin:center bottom;
+  will-change:transform;
+  user-select:none; -webkit-user-select:none;
+  touch-action:none;
+  cursor:grab;
+}
+.kort:active{ cursor:grabbing; }
+.kort--dropp{ transition:transform .32s var(--ease), opacity .32s linear; }
+.kort--tilbake{ transition:transform .35s cubic-bezier(.2,1.4,.5,1); }
+
+.kort__topp{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.kort__kat{ font-size:1.7rem; line-height:1; }
+.kort__dato{ font-size:.78rem; color:var(--ink-3); text-transform:uppercase; letter-spacing:.05em; }
+/* auto-margene over og under presser navn/beløp pent mot midten */
+.kort__butikk{
+  font-family:var(--serif); font-size:1.55rem; line-height:1.1;
+  margin-top:auto; padding-top:.5rem; overflow-wrap:anywhere;
+}
+.kort__belop{ font-size:2.1rem; font-weight:600; margin-top:.45rem; font-variant-numeric:tabular-nums; }
+.kort__belop--kreditt{ color:var(--a); }
+.kort__meta{ font-size:.8rem; color:var(--ink-3); margin:.15rem 0 auto; overflow-wrap:anywhere; }
+.kort__minne{
+  margin-top:.7rem; font-size:.8rem; align-self:flex-start;
+  background:var(--paper-2); border:1px solid var(--line);
+  border-radius:999px; padding:.2rem .65rem; color:var(--ink-2);
+}
+
+/* Stemplene som toner inn når du drar */
+.stempel{
+  position:absolute; top:22%; padding:.25rem .7rem; color:var(--sf, var(--ink-3));
+  font-size:1.05rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  border:3px solid currentColor; border-radius:9px; opacity:0;
+  pointer-events:none; white-space:nowrap; max-width:72%;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.stempel--hoyre{ right:1.1rem; transform:rotate(11deg); }
+.stempel--venstre{ left:1.1rem;  transform:rotate(-11deg); }
+.stempel--opp{ left:50%; top:16%; transform:translateX(-50%) rotate(-3deg); }
+.stempel--ned{ left:50%; top:auto; bottom:8%; transform:translateX(-50%); }
+
+.tomt{ position:absolute; inset:0; display:grid; place-content:center; justify-items:center; gap:.6rem; text-align:center; padding:1rem; }
+.tomt__emoji{ font-size:2.6rem; }
+.tomt__text{ font-family:var(--serif); font-size:1.8rem; color:var(--on-green); }
+
+/* Kontroller */
+.kontroller{ display:flex; gap:.6rem; justify-content:center; }
+.knapp{
+  flex:1 1 0; min-width:0;
+  display:flex; flex-direction:column; align-items:center; gap:.1rem;
+  padding:.7rem .5rem; border-radius:var(--radius); cursor:pointer;
+  border:1px solid var(--line-2); background:var(--card);
+  transition:transform .12s var(--ease), background .15s, color .15s, border-color .15s;
+}
+.knapp{ border-color:color-mix(in srgb, var(--kf, var(--line-2)) 45%, transparent); }
+.knapp:hover{ color:#fff; background:var(--kf, var(--brg)); border-color:var(--kf, var(--brg)); }
+.knapp:active{ transform:translateY(2px); }
+.knapp__pil{ color:var(--kf, inherit); }
+.knapp:hover .knapp__pil{ color:inherit; }
+.knapp__pil{ font-size:1.1rem; line-height:1; }
+.knapp__navn{
+  font-size:.9rem; font-weight:500; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.kontroller--sekundar{ flex-wrap:wrap; }
+.kontroller--sekundar .btn{ font-size:.85rem; padding:.4rem .85rem; }
+
+.hurtigtast{ text-align:center; font-size:.8rem; color:var(--ink-3); }
+.hurtigtast kbd{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.75rem;
+  border:1px solid var(--line-2); border-bottom-width:2px; border-radius:5px; padding:.05rem .3rem;
+}
+@media (hover:none){ .hurtigtast{ display:none; } }
+
+/* Toast, «gjør det samme med resten» */
+.toast{
+  position:fixed; left:50%; bottom:1.1rem; transform:translateX(-50%);
+  z-index:20; width:min(92vw, 28rem);
+  display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;
+  background:var(--brg); color:var(--on-green);
+  border-radius:var(--radius); padding:.7rem .9rem;
+  box-shadow:0 10px 26px rgba(0,0,0,.28);
+  font-size:.9rem;
+  animation:toast-inn .25s var(--ease);
+}
+@keyframes toast-inn{ from{ opacity:0; transform:translate(-50%, 12px); } }
+.toast__tekst{ flex:1; min-width:9rem; }
+.toast__btn{
+  background:var(--on-green); color:var(--brg); border:0; border-radius:999px;
+  padding:.3rem .85rem; font-size:.85rem; font-weight:600; cursor:pointer;
+}
+.toast__lukk{ background:none; border:0; color:inherit; cursor:pointer; font-size:1.1rem; padding:0 .2rem; opacity:.7; }
+
+/* ============================================================
+   OPPGJØR
+   ============================================================ */
+.sum__title{ font-size:clamp(2rem, 6vw, 2.8rem); padding-top:.5rem; }
+.sum__subtitle{ font-size:1.5rem; margin-top:1rem; }
+.sum__hint{ font-size:.85rem; color:var(--ink-2); }
+.sum__actions{ display:flex; gap:.6rem; flex-wrap:wrap; }
+
+.dom{
+  font-family:var(--serif); font-size:clamp(1.3rem, 4.5vw, 1.9rem); line-height:1.2;
+  background:var(--brg); color:var(--on-green);
+  border-radius:var(--radius); padding:1.1rem 1.2rem;
+}
+.dom strong{ font-weight:400; color:#fff; border-bottom:2px solid var(--accent); }
+
+.betaler{ display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; }
+.betaler__tekst{ font-size:.85rem; color:var(--ink-2); margin-right:.15rem; }
+
+.totaler{ display:grid; grid-template-columns:repeat(auto-fit, minmax(9rem, 1fr)); gap:.7rem; }
+.total{
+  background:var(--card); border:1px solid var(--line);
+  border-left:4px solid var(--linjefarge, var(--line-2));
+  border-radius:var(--radius); padding:.8rem .9rem;
+}
+.total__navn{ font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); }
+.total__sum{ font-size:1.45rem; font-weight:600; font-variant-numeric:tabular-nums; }
+.total__antall{ font-size:.8rem; color:var(--ink-2); }
+
+.filtre{ display:flex; gap:.4rem; flex-wrap:wrap; }
+.chip{
+  border:1px solid var(--line-2); background:var(--card); border-radius:999px;
+  padding:.3rem .8rem; font-size:.85rem; cursor:pointer;
+}
+.chip[aria-pressed="true"]{ background:var(--brg); color:var(--on-green); border-color:var(--brg); }
+
+.rader{ display:flex; flex-direction:column; gap:.5rem; }
+.rad{
+  display:flex; flex-wrap:wrap; align-items:center; gap:.5rem .75rem;
+  background:var(--card); border:1px solid var(--line);
+  border-left:4px solid var(--linjefarge, var(--line-2));
+  border-radius:10px; padding:.6rem .8rem;
+}
+.rad__dato{ font-size:.78rem; color:var(--ink-3); flex:0 0 3.4rem; }
+.rad__tekst{ flex:1 1 9rem; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rad__belop{ font-variant-numeric:tabular-nums; font-weight:500; margin-left:auto; }
+.rad__valg{ display:flex; gap:.25rem; flex:0 0 auto; }
+.velg{
+  border:1px solid var(--line-2); background:var(--paper-2); cursor:pointer;
+  border-radius:7px; padding:.2rem .5rem; font-size:.75rem; line-height:1.4;
+  max-width:6.5rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.velg[aria-pressed="true"]{ background:var(--velgfarge); border-color:var(--velgfarge); color:#fff; }
+
+/* ============================================================
+   BUNN
+   ============================================================ */
+.bunn{
+  width:min(100%, var(--maxw)); margin-inline:auto;
+  padding:1.2rem var(--gutter) 2rem;
+  font-size:.82rem; color:var(--ink-3); border-top:1px solid var(--line);
+}
+
+/* ============================================================
+   RESPONSIVT + BEVEGELSE
+   ============================================================ */
+@media (max-width:480px){
+  .kontroller--sekundar{ justify-content:center; }
+  .rad__belop{ margin-left:0; }
+  .rad__valg{ flex:1 1 100%; }
+  .velg{ flex:1; max-width:none; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ animation-duration:.001ms !important; transition-duration:.001ms !important; }
+}
+
+
+/* ============================================================
+   POTTER, ROLLER OG DELING (v2)
+   ============================================================ */
+.potter{ display:flex; flex-direction:column; gap:.45rem; margin-top:.9rem; }
+.pott{
+  display:flex; align-items:center; gap:.5rem;
+  border:1px solid var(--line); border-left:4px solid var(--pf, var(--line-2));
+  border-radius:10px; padding:.4rem .5rem .4rem .6rem; background:var(--paper-2);
+}
+.pott__retning{
+  flex:0 0 1.6rem; text-align:center; font-size:1rem; color:var(--pf, var(--ink-3));
+  font-weight:600; cursor:default;
+}
+.pott__navn{
+  flex:1 1 6rem; min-width:0; padding:.4rem .55rem;
+  background:var(--card); border:1px solid var(--line-2); border-radius:8px; font-size:.95rem;
+}
+.pott__type{
+  flex:0 0 auto; padding:.4rem .4rem; font-size:.82rem;
+  background:var(--card); border:1px solid var(--line-2); border-radius:8px;
+}
+.pott__bort{
+  flex:0 0 auto; width:1.9rem; height:1.9rem; border-radius:50%; cursor:pointer;
+  background:none; border:1px solid var(--line-2); color:var(--ink-3); font-size:1rem; line-height:1;
+}
+.pott__bort:hover:not(:disabled){ border-color:#a33a2a; color:#a33a2a; }
+.pott__bort:disabled{ opacity:.3; cursor:not-allowed; }
+
+.roller{ display:flex; flex-wrap:wrap; gap:1rem 1.5rem; margin-top:1.1rem; }
+.rolle{ flex:1 1 12rem; }
+.rolle .field__label{ margin-bottom:.4rem; }
+.chips{ display:flex; gap:.35rem; flex-wrap:wrap; }
+
+.panel__sum{ float:right; font-family:var(--sans); font-size:.9rem; color:var(--ink-2); }
+
+.tvist{
+  background:color-mix(in srgb, var(--accent) 14%, var(--paper));
+  border:1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius:10px; padding:.5rem .75rem; font-size:.88rem;
+}
+
+.kort__merker{ display:flex; flex-wrap:wrap; gap:.3rem; margin-top:.7rem; }
+.merke{
+  font-size:.75rem; border:1px solid var(--line); background:var(--paper-2);
+  border-radius:999px; padding:.18rem .6rem; color:var(--ink-2);
+}
+.merke--sterk{ border-color:var(--mf, var(--line-2)); color:var(--mf, var(--ink)); font-weight:500; }
+.merke--andre{ border-style:dashed; }
+.merke--eier{ color:var(--ink-3); }
+.merke--faktura{ color:var(--ink-3); border-style:dashed; }
+
+.kontroller--ekstra{ flex-wrap:wrap; justify-content:center; }
+.kontroller--ekstra:empty{ display:none; }
+.btn--pott{
+  border:1px solid color-mix(in srgb, var(--kf, var(--line-2)) 50%, transparent);
+  color:var(--ink-2); font-size:.85rem; padding:.4rem .9rem;
+}
+.btn--pott:hover{ background:var(--kf); border-color:var(--kf); color:#fff; }
+
+.sum__linje{ font-size:.85rem; color:var(--ink-2); text-align:right; }
+.panel--deling{ margin-top:.5rem; }
+.panel--deling .field{ margin-top:.9rem; }
+
+/* ============================================================
+   FAKTURAER, PERIODE OG TIDSLINJE (v3)
+   ============================================================ */
+.fakturaer{ display:flex; flex-direction:column; gap:.4rem; margin-top:.9rem; }
+.faktura{
+  display:grid; grid-template-columns:1fr auto auto; gap:.15rem .7rem; align-items:baseline;
+  background:var(--paper-2); border:1px solid var(--line); border-radius:10px; padding:.55rem .7rem;
+}
+.kvittering{
+  display:flex; flex-direction:column; gap:.15rem;
+  margin:0 0 .75rem; padding:.7rem .85rem;
+  background:var(--paper-2); border:1px solid var(--line);
+  border-left:4px solid var(--accent); border-radius:10px;
+}
+.kvittering__tall{ font-weight:600; font-size:1.05rem; }
+.kvittering__fra{ font-size:.85rem; color:var(--ink-2); }
+.kvittering__fra:empty{ display:none; }
+@keyframes kvitteringInn{
+  from{ background:color-mix(in srgb, var(--accent) 22%, var(--paper-2)); }
+  to{ background:var(--paper-2); }
+}
+.kvittering--ny{ animation:kvitteringInn 1.6s ease-out; }
+@media (prefers-reduced-motion:reduce){ .kvittering--ny{ animation:none; } }
+
+.faktura__navn{
+  font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  cursor:pointer; text-decoration:underline; text-decoration-style:dotted;
+  text-underline-offset:3px; text-decoration-color:var(--line-2);
+}
+.faktura__navn:hover{ text-decoration-color:currentColor; }
+.faktura__meta{ grid-column:1; font-size:.78rem; color:var(--ink-3); }
+.faktura__sum{ grid-row:1/3; grid-column:2; font-variant-numeric:tabular-nums; align-self:center; }
+.faktura__bort{
+  grid-row:1/3; grid-column:3; align-self:center;
+  width:1.8rem; height:1.8rem; border-radius:50%; cursor:pointer;
+  background:none; border:1px solid var(--line-2); color:var(--ink-3); line-height:1;
+}
+.faktura__bort:hover{ border-color:#a33a2a; color:#a33a2a; }
+
+.periode{
+  width:min(100%, var(--maxw)); margin-inline:auto; padding:0 var(--gutter) .75rem;
+  display:flex; flex-direction:column; gap:.5rem;
+}
+.periode__chips{ display:flex; gap:.35rem; flex-wrap:wrap; }
+.periode__datoer{ display:flex; gap:.6rem; align-items:flex-end; flex-wrap:wrap; }
+.periode__datoer .field{ flex:1 1 8rem; }
+.periode__datoer .field__input{ padding:.4rem .5rem; font-size:.9rem; }
+.periode__datoer .btn{ padding:.4rem .9rem; font-size:.85rem; }
+.periode__note{ font-size:.8rem; color:var(--accent); }
+.periode__note:empty{ display:none; }
+
+.tid{ display:flex; flex-direction:column; gap:.3rem; counter-reset:none; }
+.tid__maned{
+  display:flex; justify-content:space-between; align-items:baseline; gap:1rem;
+  margin-top:1.1rem; padding-bottom:.3rem; border-bottom:1px solid var(--line-2);
+  font-family:var(--serif); font-size:1.2rem;
+}
+.tid__maned:first-child{ margin-top:0; }
+.tid__maned span:last-child{ font-family:var(--sans); font-size:.85rem; color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.tid__post{
+  display:grid; grid-template-columns:3.4rem 1fr auto; gap:.1rem .7rem; align-items:baseline;
+  border-left:3px solid var(--linjefarge, var(--line-2));
+  padding:.45rem .7rem; background:var(--card); border-radius:0 8px 8px 0;
+}
+.tid__dag{ font-size:.78rem; color:var(--ink-3); }
+.tid__navn{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.95rem; }
+.tid__belop{ font-variant-numeric:tabular-nums; font-weight:500; }
+.tid__pott{
+  grid-column:2/4; font-size:.75rem; color:var(--pf, var(--ink-3));
+}
+
+@media (max-width:420px){
+  .tid__post{ grid-template-columns:2.9rem 1fr auto; }
+  .faktura{ grid-template-columns:1fr auto; }
+  .faktura__sum{ grid-row:1; grid-column:2; }
+  .faktura__bort{ grid-row:2; grid-column:2; justify-self:end; }
+}
