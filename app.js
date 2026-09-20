@@ -21,6 +21,7 @@
 
 const {
   fakturaFingeravtrykk,
+  finnUenigheter,
   fordelAndeler,
   hash: kortHash,
   transaksjonsNokler,
@@ -206,6 +207,7 @@ let sisteRå = '';      // siste innlesing, for ny tolkning ved kolonnebytte
 let sisteFil = null;
 let sisteFilNavn = '';
 let importert = null;
+let mottattDeling = null;
 
 function lagre() {
   try {
@@ -925,6 +927,16 @@ function lagKort(post, dybde) {
 }
 
 function tegnStokk() {
+  // Etter mottakerens første, egne fordeling starter en kort runde med bare
+  // de postene hvor de to valgene faktisk er forskjellige.
+  if (S.andre && !S.andre.sammenlignet
+      && !aktivePoster().some((p) => p.pott == null)) {
+    S.tvist = finnUenigheter(aktivePoster(), S.andre.tildeling, pottNavn);
+    S.andre.sammenlignet = true;
+    lagre();
+    if (S.tvist.length) si(`${S.tvist.length} ${S.tvist.length === 1 ? 'uenighet' : 'uenigheter'} å gå gjennom`);
+    else si(`Du og ${S.andre.navn} fordelte alt likt`);
+  }
   const ko = koen();
   $$('.kort:not(.kort--flyr)', stack()).forEach((e) => e.remove());
   const synlige = ko.slice(0, KONFIG.synligeKort);
@@ -957,7 +969,7 @@ function tegnKontroller() {
   rad.textContent = '';
   retningsPotter().forEach((p, i) => {
     const b = document.createElement('button');
-    b.className = 'knapp';
+    b.className = `knapp knapp--${RETNINGER[i].id}`;
     b.type = 'button';
     b.dataset.pott = p.id;
     b.style.setProperty('--kf', p.farge);
@@ -1161,17 +1173,58 @@ function skjulToast() {
 /* ─── 6. SAMMENLIKNING ──────────────────────────────────── */
 
 const B64 = {
-  inn(str) {
-    const bytes = new TextEncoder().encode(str);
+  innBytes(bytes) {
     let bin = '';
     bytes.forEach((b) => { bin += String.fromCharCode(b); });
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   },
+  utBytes(s) {
+    const ryddet = s.replace(/-/g, '+').replace(/_/g, '/');
+    const utfylt = ryddet + '='.repeat((4 - (ryddet.length % 4)) % 4);
+    const bin = atob(utfylt);
+    return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  },
+  inn(str) {
+    return this.innBytes(new TextEncoder().encode(str));
+  },
   ut(s) {
-    const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
-    return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+    return new TextDecoder().decode(this.utBytes(s));
   },
 };
+
+async function komprimer(tekst) {
+  const strøm = new Blob([tekst]).stream().pipeThrough(new CompressionStream('gzip'));
+  return new Uint8Array(await new Response(strøm).arrayBuffer());
+}
+
+async function dekomprimer(bytes) {
+  const strøm = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Response(strøm).text();
+}
+
+async function pakkDeling(data) {
+  const json = JSON.stringify(data);
+  if ('CompressionStream' in window && 'DecompressionStream' in window) {
+    try { return `g4.${B64.innBytes(await komprimer(json))}`; } catch { /* bruk ukomprimert */ }
+  }
+  return `j4.${B64.inn(json)}`;
+}
+
+async function lesDelingsdata(rå) {
+  const kode = String(rå).trim().replace(/^.*#deling=/, '');
+  if (kode.length > 1500000) throw new Error('Delingslenka er for stor.');
+  let json;
+  if (kode.startsWith('g4.')) {
+    if (!('DecompressionStream' in window)) throw new Error('Nettleseren kan ikke åpne denne delingslenka. Prøv en nyere nettleser.');
+    json = await dekomprimer(B64.utBytes(kode.slice(3)));
+  } else if (kode.startsWith('j4.')) {
+    json = B64.ut(kode.slice(3));
+  } else {
+    json = B64.ut(kode);
+  }
+  if (json.length > 5000000) throw new Error('Delingslenka inneholder for mye data.');
+  return JSON.parse(json);
+}
 
 /** Avtrykk av stabile transaksjonsnøkler, uavhengig av importrekkefølgen. */
 function fingeravtrykk(poster) {
@@ -1185,34 +1238,118 @@ function fingeravtrykkV2(poster) {
 
 const TEGN = '0123456789abcdefghijklmnopqrstuvwxyz';
 
-function lagDelingskode() {
+async function lagDelingskode() {
   sikreDelingsnokler();
-  const fordeling = S.poster.map((p) => {
-    const i = S.potter.findIndex((x) => x.id === p.pott);
-    return [p.delingsnokkel, i >= 0 && i < TEGN.length ? TEGN[i] : '-'];
-  });
-  return B64.inn(JSON.stringify({
-    v: 3,
-    fp: fingeravtrykk(S.poster),
+  const poster = aktivePoster();
+  const fakturaer = S.fakturaer.filter((f) => poster.some((p) => p.faktura === f.id));
+  const fakturaIndeks = new Map(fakturaer.map((f, i) => [f.id, i]));
+  return pakkDeling({
+    v: 4,
     fra: S.jeg ? pottNavn(S.jeg) : 'Den andre',
     potter: S.potter.map((p) => ({ n: p.navn, t: p.type })),
-    fordeling,
-  }));
+    betaler: S.potter.findIndex((p) => p.id === S.betaler),
+    fakturaer: fakturaer.map((f) => ({ n: f.navn, k: f.kilde || '' })),
+    poster: poster.map((p) => ({
+      k: p.delingsnokkel,
+      d: p.dato || '',
+      x: p.tekst,
+      b: p.belop,
+      e: p.eier || '',
+      f: fakturaIndeks.get(p.faktura) || 0,
+      p: S.potter.findIndex((x) => x.id === p.pott),
+    })),
+  });
 }
 
-function delingslenke() {
+async function delingslenke() {
   const base = location.origin + location.pathname;
-  return `${base}#deling=${lagDelingskode()}`;
+  return `${base}#deling=${await lagDelingskode()}`;
+}
+
+function gyldigV4(d) {
+  return d && d.v === 4 && Array.isArray(d.potter) && d.potter.length > 0
+    && d.potter.length <= 30 && Array.isArray(d.fakturaer) && d.fakturaer.length <= 100
+    && Array.isArray(d.poster) && d.poster.length > 0 && d.poster.length <= 10000
+    && d.poster.every((p) => p && typeof p.x === 'string' && Number.isFinite(Number(p.b))
+      && Number.isInteger(p.f) && p.f >= 0 && p.f < d.fakturaer.length
+      && Number.isInteger(p.p) && p.p >= 0 && p.p < d.potter.length);
+}
+
+function visMottattDeling(d) {
+  mottattDeling = d;
+  const antall = d.poster.length;
+  const sum = d.poster.reduce((total, p) => total + Number(p.b), 0);
+  $('#deling-mottatt').hidden = false;
+  $('#deling-mottatt-tittel').textContent = `${d.fra || 'Den andre'} har delt et oppgjør`;
+  $('#deling-mottatt-info').textContent = `${antall} ${antall === 1 ? 'kjøp' : 'kjøp'} · ${kr(sum)} · ${d.fakturaer.length} ${d.fakturaer.length === 1 ? 'regning' : 'regninger'}`;
+  $('#deling-mottatt-melding').textContent = S.poster.length
+    ? 'Når du velger, erstatter dette oppgjøret det du har åpent nå.' : '';
+  $('#faktura-panel').hidden = true;
+  $('#oppsett-panel').hidden = true;
+  $('#slippsone').hidden = true;
+  visSkjerm('start');
+  $('#deling-mottatt').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Oppretter en lokal bunke fra hele oppgjøret i versjon 4-lenka. */
+function importerMottattDeling(godta) {
+  const d = mottattDeling;
+  if (!gyldigV4(d)) return { feil: 'Delingslenka mangler deler av oppgjøret.' };
+  pottTeller = 0;
+  S.potter = d.potter.map((p) => nyPott(String(p.n || 'Pott').slice(0, 50), POTTTYPER[p.t] ? p.t : 'person'));
+  S.fakturaer = d.fakturaer.map((f, i) => ({
+    id: `delt-f${i + 1}`,
+    navn: String(f.n || `Regning ${i + 1}`).slice(0, 60),
+    kilde: String(f.k || 'Delt oppgjør').slice(0, 80),
+    antall: 0, sum: 0, fra: null, til: null,
+  }));
+  const deres = {};
+  S.poster = d.poster.map((rad, i) => {
+    const id = `delt-${i + 1}-${kortHash(rad.k || `${rad.d}|${rad.x}|${rad.b}`)}`;
+    const post = {
+      id, dato: rad.d || '', tekst: rad.x, belop: ore(Number(rad.b)),
+      eier: rad.e || null, faktura: S.fakturaer[rad.f].id,
+      delingsnokkel: rad.k || null, pott: godta ? S.potter[rad.p].id : null,
+    };
+    deres[id] = S.potter[rad.p].navn;
+    return post;
+  });
+  S.fakturaer.forEach((f) => {
+    const poster = S.poster.filter((p) => p.faktura === f.id);
+    const datoer = poster.map((p) => p.dato).filter(Boolean).sort();
+    f.antall = poster.length;
+    f.sum = ore(poster.reduce((sum, p) => sum + p.belop, 0));
+    f.fra = datoer[0] || null;
+    f.til = datoer[datoer.length - 1] || null;
+    f.fingeravtrykk = fakturaFingeravtrykk(poster);
+  });
+  S.jeg = (personer().find((p) => p.navn.toLowerCase() !== String(d.fra || '').toLowerCase()) || {}).id || null;
+  S.betaler = S.potter[d.betaler] ? S.potter[d.betaler].id : null;
+  S.periode = { fra: null, til: null, faktura: null };
+  S.historikk = []; S.tvist = []; S.filter = 'alle';
+  S.andre = { navn: d.fra || 'Den andre', tildeling: deres, sammenlignet: godta };
+  mottattDeling = null;
+  $('#deling-mottatt').hidden = true;
+  $('#oppsett-panel').hidden = false;
+  $('#slippsone').hidden = false;
+  lagre(); tegnPotter(); tegnFakturaer();
+  visSkjerm(godta ? 'oppgjor' : 'sveip');
+  return { navn: S.andre.navn, antall: S.poster.length };
 }
 
 /**
  * Tar imot den andres fordeling. Enighet beholdes, uenighet legges
  * først i køen, og det bare den andre har tatt, hentes inn.
  */
-function brukDelingskode(rå) {
+async function brukDelingskode(rå) {
   const kode = String(rå).trim().replace(/^.*#deling=/, '');
   let d;
-  try { d = JSON.parse(B64.ut(kode)); } catch { return { feil: 'Koden ser ikke riktig ut. Kopier hele lenka på nytt.' }; }
+  try { d = await lesDelingsdata(kode); } catch (feil) { return { feil: feil.message || 'Koden ser ikke riktig ut. Kopier hele lenka på nytt.' }; }
+  if (d && d.v === 4) {
+    if (!gyldigV4(d)) return { feil: 'Delingslenka mangler deler av oppgjøret.' };
+    visMottattDeling(d);
+    return { mottatt: true, navn: d.fra || 'Den andre', antall: d.poster.length };
+  }
   const erV3 = d && d.v === 3 && Array.isArray(d.fordeling);
   const erV2 = d && typeof d.tild === 'string';
   if (!d || (!erV3 && !erV2) || !Array.isArray(d.potter)) return { feil: 'Koden mangler innhold.' };
@@ -1621,21 +1758,43 @@ function koble() {
       el.textContent = 'Si først hvem du er, under «Jeg er» på importskjermen. Da vet den andre hvem lenka kommer fra.';
       return;
     }
-    const lenke = delingslenke();
-    const ok = await kopier(lenke);
     const el = $('#delings-svar');
     el.hidden = false;
-    el.textContent = ok
-      ? `Lenke kopiert. Send den til ${S.andre ? S.andre.navn : 'den andre'}, som åpner den etter å ha lastet inn den samme regninga.`
-      : 'Kopier lenka under og send den videre.';
+    if (aktivePoster().some((p) => !p.pott)) {
+      el.dataset.type = 'feil';
+      el.textContent = 'Fordel alle kjøpene før du deler oppgjøret.';
+      return;
+    }
+    el.dataset.type = '';
+    el.textContent = 'Gjør oppgjøret klart …';
+    const lenke = await delingslenke();
     $('#delings-lenke').value = lenke;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Kortsveip-oppgjør', text: `${pottNavn(S.jeg)} har delt et oppgjør med deg.`, url: lenke });
+        el.dataset.type = 'ok';
+        el.textContent = 'Oppgjøret er delt.';
+        $('#delings-lenke').hidden = true;
+        return;
+      } catch (feil) {
+        if (feil && feil.name === 'AbortError') { el.textContent = 'Delingen ble avbrutt.'; return; }
+      }
+    }
+    const ok = await kopier(lenke);
+    el.dataset.type = ok ? 'ok' : 'feil';
+    el.textContent = ok ? 'Hele oppgjøret er kopiert som en lenke. Send den til den du deler med.' : 'Kopier lenka under og send den videre.';
     $('#delings-lenke').hidden = ok;
   });
-  $('#knapp-sammenlign').addEventListener('click', () => {
-    const res = brukDelingskode($('#kode-inn').value);
+  $('#knapp-sammenlign').addEventListener('click', async () => {
+    const res = await brukDelingskode($('#kode-inn').value);
     const el = $('#delings-svar');
     el.hidden = false;
     if (res.feil) { el.textContent = res.feil; el.dataset.type = 'feil'; return; }
+    if (res.mottatt) {
+      el.dataset.type = 'ok';
+      el.textContent = `Oppgjøret fra ${res.navn} er klart. Velg om du vil godta eller fordele selv.`;
+      return;
+    }
     el.dataset.type = 'ok';
     el.textContent = `Sammenliknet med ${res.navn}: ${res.enige} dere er enige om, `
       + `${res.hentet} hentet fra ${res.navn}, ${res.uenige} dere er uenige om.`
@@ -1645,13 +1804,24 @@ function koble() {
     tegnPotter();
     if (res.uenige) visSkjerm('sveip'); else tegnOppgjor();
   });
+  $('#knapp-godta-deling').addEventListener('click', () => {
+    const res = importerMottattDeling(true);
+    if (res.feil) $('#deling-mottatt-melding').textContent = res.feil;
+  });
+  $('#knapp-fordel-selv').addEventListener('click', () => {
+    const res = importerMottattDeling(false);
+    if (res.feil) $('#deling-mottatt-melding').textContent = res.feil;
+  });
 
   // Ny regning
   $('#knapp-nullstill').addEventListener('click', () => {
     if (!window.confirm('Nullstille og starte på en ny regning? Fordelingen forsvinner. Pottene og butikkene appen har lært, beholdes.')) return;
     S.poster = []; S.historikk = []; S.tvist = []; S.andre = null;
     S.fakturaer = []; S.periode = { fra: null, til: null, faktura: null };
-    importert = null;
+    importert = null; mottattDeling = null;
+    $('#deling-mottatt').hidden = true;
+    $('#oppsett-panel').hidden = false;
+    $('#slippsone').hidden = false;
     tegnFakturaer();
     try { localStorage.removeItem(KONFIG.lagerNokkel); } catch { /* ignorer */ }
     $('#lim-inn').value = '';
@@ -1667,7 +1837,10 @@ function koble() {
     S.poster = []; S.historikk = []; S.tvist = []; S.andre = null;
     S.filter = 'alle'; S.jeg = null; S.betaler = null;
     pottTeller = 0; S.potter = standardPotter();
-    minne = {}; importert = null; sisteRå = ''; sisteFil = null; sisteFilNavn = '';
+    minne = {}; importert = null; mottattDeling = null; sisteRå = ''; sisteFil = null; sisteFilNavn = '';
+    $('#deling-mottatt').hidden = true;
+    $('#oppsett-panel').hidden = false;
+    $('#slippsone').hidden = false;
     $('#lim-inn').value = '';
     $('#kode-inn').value = '';
     $('#forhandsvisning').hidden = true;
@@ -1700,16 +1873,16 @@ function koble() {
 
 /* ─── Oppstart ──────────────────────────────────────────── */
 
-function start() {
+async function start() {
   koble();
   const gjenopptatt = hentLagret();
   tegnPotter();
   tegnFakturaer();
 
-  // Delingslenke i adressefeltet: bruk den så snart regninga finnes.
+  // Delingslenke i adressefeltet kan nå inneholde hele oppgjøret.
   const hash = location.hash || '';
   if (hash.includes('deling=')) {
-    const res = brukDelingskode(hash);
+    const res = await brukDelingskode(hash);
     const el = $('#delings-svar');
     el.hidden = false;
     if (res.feil) {
@@ -1717,7 +1890,7 @@ function start() {
       el.textContent = res.feil;
       $('#kode-inn').value = hash.replace(/^.*#deling=/, '');
       melding(res.feil, 'feil');
-    } else {
+    } else if (!res.mottatt) {
       el.dataset.type = 'ok';
       el.textContent = `Sammenliknet med ${res.navn}: ${res.enige} enige, ${res.hentet} hentet, ${res.uenige} uenige.`;
       tegnPotter();
@@ -1725,7 +1898,9 @@ function start() {
     history.replaceState(null, '', location.pathname);
   }
 
-  if (gjenopptatt) {
+  if (mottattDeling) {
+    visSkjerm('start');
+  } else if (gjenopptatt) {
     visSkjerm(S.skjerm);
     const ig = koen().length;
     si(ig ? `Fortsetter der du slapp, ${ig} igjen` : 'Alt er sortert');

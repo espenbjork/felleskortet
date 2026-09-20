@@ -314,6 +314,14 @@ main{ flex:1; width:min(100%, var(--maxw)); margin-inline:auto; padding:0 var(--
 
 /* Kontroller */
 .kontroller{ display:flex; gap:.6rem; justify-content:center; }
+#kontroller{
+  display:grid; grid-template-columns:repeat(3, minmax(0, 1fr));
+  grid-template-areas:"venstre opp hoyre" "ned ned ned";
+}
+#kontroller .knapp--venstre{ grid-area:venstre; }
+#kontroller .knapp--opp{ grid-area:opp; }
+#kontroller .knapp--hoyre{ grid-area:hoyre; }
+#kontroller .knapp--ned{ grid-area:ned; justify-self:center; width:min(100%, 10rem); }
 .knapp{
   flex:1 1 0; min-width:0;
   display:flex; flex-direction:column; align-items:center; gap:.1rem;
@@ -505,6 +513,9 @@ main{ flex:1; width:min(100%, var(--maxw)); margin-inline:auto; padding:0 var(--
 .sum__linje{ font-size:.85rem; color:var(--ink-2); text-align:right; }
 .panel--deling{ margin-top:.5rem; }
 .panel--deling .field{ margin-top:.9rem; }
+.panel--mottatt{ border-color:var(--accent); box-shadow:0 10px 28px rgba(13,53,39,.1); }
+.panel__eyebrow{ margin:0 0 .35rem; color:var(--accent); font-size:.78rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+.deling-valg{ margin:.8rem 0 0; color:var(--ink-2); }
 
 /* ============================================================
    FAKTURAER, PERIODE OG TIDSLINJE (v3)

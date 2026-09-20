@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   fakturaFingeravtrykk,
+  finnUenigheter,
   fordelAndeler,
   postSignatur,
   transaksjonsNokler,
@@ -60,4 +61,15 @@ test('øreavrunding går nøyaktig opp også med tre personer', () => {
   ], 100);
   assert.equal(andeler.reduce((sum, p) => sum + p.betaler, 0), 100);
   assert.deepEqual(andeler.map((p) => p.betaler), [33.33, 33.33, 33.34]);
+});
+
+test('bare ulike fordelinger blir markert som uenigheter', () => {
+  const poster = [
+    { id: '1', pott: 'meg' },
+    { id: '2', pott: 'felles' },
+    { id: '3', pott: 'samboer' },
+  ];
+  const navn = { meg: 'Espen', felles: 'Felles', samboer: 'Victoria' };
+  const deres = { 1: 'Espen', 2: 'Victoria', 3: 'Victoria' };
+  assert.deepEqual(finnUenigheter(poster, deres, (id) => navn[id]), ['2']);
 });

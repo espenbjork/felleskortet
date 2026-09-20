@@ -27,7 +27,7 @@
   <link rel="canonical" href="https://espenbjork.github.io/kortsveip/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
-  <link rel="stylesheet" href="styles.css?v=dev">
+  <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
   <a class="skip-link" href="#hovedinnhold">Hopp til innhold</a>
@@ -76,8 +76,23 @@
         <p class="intro__privacy">
           <span aria-hidden="true">🔒</span>
           Alt skjer lokalt i nettleseren din. Ingen kontodata forlater
-          maskinen, det finnes ingen server å sende dem til.
+          maskinen før du selv velger å dele et oppgjør.
         </p>
+      </div>
+
+      <div class="panel panel--mottatt" id="deling-mottatt" hidden>
+        <p class="panel__eyebrow">Delt med deg</p>
+        <h2 class="panel__title" id="deling-mottatt-tittel">Et oppgjør er klart</h2>
+        <p class="panel__hint" id="deling-mottatt-info"></p>
+        <p class="deling-valg">
+          Godta fordelingen for å gå rett til oppgjøret, eller fordel selv.
+          Da viser Kortsveip bare kjøpene dere er uenige om etterpå.
+        </p>
+        <div class="panel__actions">
+          <button class="btn btn--primary btn--big" type="button" id="knapp-godta-deling">Godta fordelingen</button>
+          <button class="btn btn--ghost btn--big" type="button" id="knapp-fordel-selv">Fordel selv</button>
+        </div>
+        <p class="melding" id="deling-mottatt-melding" role="status" aria-live="polite"></p>
       </div>
 
       <div class="panel" id="faktura-panel" hidden>
@@ -95,7 +110,7 @@
           <button class="btn btn--primary btn--big" type="button" id="knapp-start-sveip">Start sveipingen →</button>
         </div>
       </div>
-      <div class="panel">
+      <div class="panel" id="oppsett-panel">
         <h2 class="panel__title">Pottene</h2>
         <p class="panel__hint" id="pott-hjelp"></p>
         <ul class="potter" id="potter"></ul>
@@ -250,15 +265,15 @@
       <p class="melding" id="melding-sum" role="status" aria-live="polite"></p>
 
       <div class="panel panel--deling">
-        <h2 class="panel__title">Sammenlign med den andre</h2>
+        <h2 class="panel__title">Del hele oppgjøret</h2>
         <p class="panel__hint">
-          Har dere sveipet hver for dere? Del lenka di, så ser den andre hva
-          dere er enige om, og hva dere må snakke om. Lenka inneholder bare
-          fordelingen, ikke utgiftene, så begge må ha lastet inn de samme
-          regningene.
+          Den andre kan godta fordelingen din eller fordele alt selv. Velger
+          de å fordele selv, viser Kortsveip kjøpene dere er uenige om.
+          Lenka inneholder kjøpstekster og beløp, så send den bare til den du
+          deler oppgjøret med.
         </p>
         <div class="panel__actions">
-          <button class="btn btn--primary" type="button" id="knapp-del">Kopier delingslenke</button>
+          <button class="btn btn--primary" type="button" id="knapp-del">Del hele oppgjøret</button>
         </div>
         <p class="field">
           <label class="field__label" for="kode-inn">Fikk du en lenke? Lim den inn her</label>
@@ -299,8 +314,8 @@
     <button class="bunn__slett" type="button" id="knapp-slett-alt">Slett alle lokale data</button>
   </footer>
 
-  <script src="kjerne.js?v=dev" defer></script>
-  <script src="les.js?v=dev" defer></script>
-  <script src="app.js?v=dev" defer></script>
+  <script src="kjerne.js?v=4" defer></script>
+  <script src="les.js?v=4" defer></script>
+  <script src="app.js?v=4" defer></script>
 </body>
 </html>

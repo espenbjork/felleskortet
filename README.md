@@ -126,21 +126,20 @@ seg.
 
 ### Deling
 
-«Kopier delingslenke» pakker fordelingen i `#deling=…` bakerst i adressen.
-`#`-delen sendes aldri til noen server, så lenka kan gå i en melding uten at
-tallene tar veien om noen andre.
+«Del hele oppgjøret» pakker regninger, transaksjoner, potter og avsenderens
+fordeling i `#deling=…` bakerst i adressen. Innholdet komprimeres i nettleseren.
+`#`-delen sendes aldri til Kortsveip eller GitHub Pages, men den inneholder
+kjøpstekster og beløp og skal derfor bare sendes til den oppgjøret gjelder.
 
-Lenka inneholder **bare** fordelingen, ikke utgiftene: pottenavn, en stabil
-transaksjonsnøkkel, ett tegn per utgift og et kort avtrykk av regninga. Nøklene
-gjør at to personer kan importere flere fakturaer i ulik rekkefølge uten at
-valgene havner på feil kjøp. Begge må ha lastet inn de samme regningene. Er
-avtrykket et annet, sier appen fra i stedet for å blande dem.
+Mottakeren trenger ikke laste inn de samme filene. Når lenka åpnes, kan hen:
 
-Når den andres lenke leses inn:
+- **Godta fordelingen** og gå rett til det ferdige oppgjøret.
+- **Fordele selv** ved å sveipe hele bunken på nytt. Etterpå legges bare
+  uenighetene først i køen, og kortene viser begge valgene.
 
-- **Enige** → beholdes.
-- **Bare den andre har tatt den** → hentes inn.
-- **Uenige** → legges først i køen, og kortet viser begges valg.
+Versjon 2- og 3-lenker fra tidligere utgaver kan fortsatt leses. De gamle
+formatene inneholder bare fordelingen og krever derfor fortsatt at begge har
+lastet inn de samme regningene.
 
 ## Justeringer
 

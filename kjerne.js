@@ -74,8 +74,22 @@
     return liste;
   }
 
+  /** Finner postene der to fordelinger peker på ulike pottnavn. */
+  function finnUenigheter(poster, denAndresTildeling, finnPottNavn) {
+    const deres = denAndresTildeling || {};
+    return (poster || [])
+      .filter((post) => {
+        const deresNavn = deres[post.id];
+        if (!deresNavn || !post.pott) return false;
+        const mittNavn = finnPottNavn(post.pott);
+        return String(mittNavn || '').toLowerCase() !== String(deresNavn).toLowerCase();
+      })
+      .map((post) => post.id);
+  }
+
   return {
     fakturaFingeravtrykk,
+    finnUenigheter,
     fordelAndeler,
     hash,
     normaliserTekst,
