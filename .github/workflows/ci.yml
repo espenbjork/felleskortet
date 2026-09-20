@@ -18,7 +18,7 @@ jobs:
           node-version: 20
 
       - name: Valider HTML og JavaScript
-        run: npx --yes html-validate index.html && node --check kjerne.js && node --check les.js && node --check app.js
+        run: npx --yes html-validate index.html && node --check kjerne.js && node --check les.js && node --check analyse.js && node --check app.js
 
       - name: Kjør tester
         run: node --test tests/*.test.js

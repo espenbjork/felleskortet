@@ -27,6 +27,11 @@ const {
   transaksjonsNokler,
 } = window.FelleskortetKjerne;
 
+const analyse = window.FelleskortetAnalyse || {
+  spor() {}, sporEnGang() {}, startTidtaking() {}, registrerFordeling: () => ({}),
+  avsluttTidtaking: () => ({}), visValg() {}, erAktiv: () => false,
+};
+
 /* ─── 1. KONFIG ─────────────────────────────────────────── */
 
 const KONFIG = {
@@ -339,7 +344,10 @@ function visSkjerm(navn) {
   $('#periode').hidden = navn === 'start' || !S.poster.length;
   if (navn !== 'start') tegnPeriode();
   if (navn === 'sveip') tegnSveip();
-  if (navn === 'oppgjor') tegnOppgjor();
+  if (navn === 'oppgjor') {
+    tegnOppgjor();
+    sporFerdigOppgjor();
+  }
   if (navn === 'tidslinje') tegnTidslinje();
   window.scrollTo(0, 0);
   lagre();
@@ -419,10 +427,11 @@ function tegnPotter() {
   tegnRoller();
 }
 
-/** «Jeg er» og «hvem betaler», begge blant person-pottene. */
+/** Hvem betaler settes i oppsettet. Egen pott velges først når oppgjøret deles. */
 function tegnRoller() {
-  for (const [boks, felt, ekstra] of [['#jeg-er', 'jeg', null], ['#betaler-valg', 'betaler', 'Felles konto']]) {
+  for (const [boks, felt, ekstra] of [['#betaler-valg', 'betaler', 'Felles konto'], ['#del-som', 'jeg', null]]) {
     const el = $(boks);
+    if (!el) continue;
     el.textContent = '';
     const valg = personer().map((p) => ({ id: p.id, navn: p.navn }));
     if (ekstra) valg.push({ id: 'ingen', navn: ekstra });
@@ -443,6 +452,9 @@ function tegnRoller() {
       el.append(b);
     });
   }
+
+  const delKnapp = $('#knapp-del');
+  if (delKnapp) delKnapp.textContent = S.jeg ? `Del som ${pottNavn(S.jeg)}` : 'Del hele oppgjøret';
 }
 
 function oppdaterPottnavn() {
@@ -645,6 +657,14 @@ function leggTilPoster() {
     melding(`Denne fakturaen ${resultat.feil}. Ingenting lagt til.`, 'feil');
     return;
   }
+
+  const filtype = ((sisteFilNavn.match(/\.([a-z0-9]+)$/i) || [])[1] || 'tekst').toLowerCase();
+  analyse.spor('invoice_imported', {
+    transactions_count: resultat.antall,
+    invoices_total: S.fakturaer.length,
+    source_type: filtype,
+    used_memory: $('#bruk-minne').checked,
+  });
 
   importert = null;
   sisteFilNavn = '';
@@ -1102,6 +1122,14 @@ function sveip(mål, fraElement) {
     S.historikk.push({ type: 'en', endringer: [{ id: post.id, fra }], tvist: varTvist });
     if (varTvist) S.tvist = S.tvist.filter((x) => x !== post.id);
     si(`${pentNavn(post.tekst)} til ${pottNavn(mål)}`);
+    const pott = S.potter.find((p) => p.id === mål);
+    analyse.spor('transaction_assigned', {
+      transactions_count: 1,
+      method: 'single',
+      pot_type: pott ? pott.type : 'unknown',
+      was_disagreement: varTvist,
+      ...analyse.registrerFordeling(1),
+    });
   }
   lagre();
 
@@ -1153,6 +1181,14 @@ function tilbySamme(post, pottId) {
     S.historikk.push({ type: 'flere', endringer });
     lagre(); skjulToast(); tegnStokk();
     si(`${like.length} utgifter til ${pottNavn(pottId)}`);
+    const pott = S.potter.find((p) => p.id === pottId);
+    analyse.spor('transaction_assigned', {
+      transactions_count: like.length,
+      method: 'same_merchant',
+      pot_type: pott ? pott.type : 'unknown',
+      was_disagreement: false,
+      ...analyse.registrerFordeling(like.length),
+    });
   });
   const lukk = document.createElement('button');
   lukk.className = 'toast__lukk';
@@ -1337,7 +1373,14 @@ function importerMottattDeling(godta) {
   $('#oppsett-panel').hidden = false;
   $('#slippsone').hidden = false;
   lagre(); tegnPotter(); tegnFakturaer();
+  analyse.spor('shared_settlement_decided', {
+    decision: godta ? 'accepted' : 'redistribute',
+    transactions_count: S.poster.length,
+    invoices_count: S.fakturaer.length,
+  });
+  if (!godta) analyse.startTidtaking();
   visSkjerm(godta ? 'oppgjor' : 'sveip');
+  if (godta) sporFerdigOppgjor();
   return { navn: S.andre.navn, antall: S.poster.length };
 }
 
@@ -1352,6 +1395,10 @@ async function brukDelingskode(rå) {
   if (d && d.v === 4) {
     if (!gyldigV4(d)) return { feil: 'Delingslenka mangler deler av oppgjøret.' };
     visMottattDeling(d);
+    analyse.spor('shared_settlement_opened', {
+      transactions_count: d.poster.length,
+      invoices_count: d.fakturaer.length,
+    });
     return { mottatt: true, navn: d.fra || 'Den andre', antall: d.poster.length };
   }
   const erV3 = d && d.v === 3 && Array.isArray(d.fordeling);
@@ -1512,6 +1559,20 @@ function tegnOppgjor() {
   tegnRader();
 }
 
+function sporFerdigOppgjor() {
+  const poster = aktivePoster();
+  if (!poster.length || poster.some((p) => !p.pott)) return;
+  const lokalId = kortHash(S.fakturaer.map((f) => f.fingeravtrykk || f.id).sort().join('|'));
+  analyse.sporEnGang('settlement_completed', lokalId, {
+    transactions_count: poster.length,
+    invoices_count: S.fakturaer.length,
+    people_count: personer().length,
+    disagreements_count: S.tvist.length,
+    has_excluded_pot: S.potter.some((p) => p.type === 'utenfor'),
+    ...analyse.avsluttTidtaking(poster.length),
+  });
+}
+
 function tegnFiltre(r) {
   const boks = $('#filtre');
   boks.textContent = '';
@@ -1618,6 +1679,7 @@ function lastNedCsv() {
   a.download = `felleskortet-oppgjor-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  analyse.spor('settlement_exported', { format: 'csv', transactions_count: S.poster.length });
 }
 
 async function kopier(tekst) {
@@ -1719,6 +1781,11 @@ function koble() {
   $('#ta-med-innbetalinger').addEventListener('change', tegnForhandsvisning);
   $('#knapp-legg-til').addEventListener('click', leggTilPoster);
   $('#knapp-start-sveip').addEventListener('click', () => visSkjerm('sveip'));
+  $('#knapp-start-sveip').addEventListener('click', () => analyse.spor('swiping_started', {
+    transactions_count: S.poster.length,
+    invoices_count: S.fakturaer.length,
+  }));
+  $('#knapp-start-sveip').addEventListener('click', analyse.startTidtaking);
 
   // Klikkbar navigasjon mellom skjermene
   $$('.steps__item').forEach((b) => b.addEventListener('click', () => {
@@ -1759,7 +1826,11 @@ function koble() {
       const el = $('#delings-svar');
       el.hidden = false;
       el.dataset.type = 'feil';
-      el.textContent = 'Si først hvem du er, under «Jeg er» på importskjermen. Da vet den andre hvem lenka kommer fra.';
+      el.textContent = 'Velg hvilken pott som er din før du deler.';
+      $('#deling-avsender').classList.remove('deling-avsender--mangler');
+      void $('#deling-avsender').offsetWidth;
+      $('#deling-avsender').classList.add('deling-avsender--mangler');
+      $('#deling-avsender').scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     const el = $('#delings-svar');
@@ -1779,6 +1850,9 @@ function koble() {
         el.dataset.type = 'ok';
         el.textContent = 'Oppgjøret er delt.';
         $('#delings-lenke').hidden = true;
+        analyse.spor('settlement_shared', {
+          method: 'native', transactions_count: aktivePoster().length, invoices_count: S.fakturaer.length,
+        });
         return;
       } catch (feil) {
         if (feil && feil.name === 'AbortError') { el.textContent = 'Delingen ble avbrutt.'; return; }
@@ -1788,6 +1862,9 @@ function koble() {
     el.dataset.type = ok ? 'ok' : 'feil';
     el.textContent = ok ? 'Hele oppgjøret er kopiert som en lenke. Send den til den du deler med.' : 'Kopier lenka under og send den videre.';
     $('#delings-lenke').hidden = ok;
+    if (ok) analyse.spor('settlement_shared', {
+      method: 'copied', transactions_count: aktivePoster().length, invoices_count: S.fakturaer.length,
+    });
   });
   $('#knapp-sammenlign').addEventListener('click', async () => {
     const res = await brukDelingskode($('#kode-inn').value);
@@ -1807,6 +1884,11 @@ function koble() {
     $('#kode-inn').value = '';
     tegnPotter();
     if (res.uenige) visSkjerm('sveip'); else tegnOppgjor();
+    analyse.spor('settlement_compared', {
+      agreements_count: res.enige,
+      disagreements_count: res.uenige,
+      imported_count: res.hentet,
+    });
   });
   $('#knapp-godta-deling').addEventListener('click', () => {
     const res = importerMottattDeling(true);
@@ -1816,6 +1898,8 @@ function koble() {
     const res = importerMottattDeling(false);
     if (res.feil) $('#deling-mottatt-melding').textContent = res.feil;
   });
+
+  $('#knapp-analysevalg').addEventListener('click', analyse.visValg);
 
   // Ny regning
   $('#knapp-nullstill').addEventListener('click', () => {
@@ -1887,6 +1971,7 @@ async function start() {
 
   // Delingslenke i adressefeltet kan nå inneholde hele oppgjøret.
   const hash = location.hash || '';
+  const startetMedDeling = hash.includes('deling=');
   if (hash.includes('deling=')) {
     const res = await brukDelingskode(hash);
     const el = $('#delings-svar');
@@ -1913,6 +1998,10 @@ async function start() {
   } else {
     visSkjerm('start');
   }
+  analyse.spor('app_opened', {
+    resumed: gjenopptatt,
+    opened_shared_settlement: startetMedDeling,
+  });
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

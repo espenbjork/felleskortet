@@ -5,10 +5,11 @@ med kredittkortregninga og en kalkulator den 20. hver måned.
 
 🔗 https://felleskortet.no/
 
-Ren HTML, CSS og JS. Ingen rammeverk, ingen byggesteg, ingen server, ingen
-produksjonsavhengigheter eller eksterne skrifter. **All kontodata blir liggende
-i nettleseren** (`localStorage`) til brukeren selv velger å dele et oppgjør som
-en lenke med den andre personen.
+Ren HTML, CSS og JS. Ingen rammeverk, ingen byggesteg, ingen server eller
+eksterne skrifter. **All kontodata blir liggende i nettleseren** (`localStorage`)
+til brukeren selv velger å dele et oppgjør som en lenke med den andre personen.
+Frivillig produktstatistikk sender bare anonyme hendelsesnavn og tellinger; se
+[`ANALYSE.md`](ANALYSE.md).
 
 ## Hva den gjør
 
@@ -152,11 +153,13 @@ lastet inn de samme regningene.
 | Kolonnegjenkjenning | `HODE` i `les.js` |
 | Spalteavstand i PDF-er | `GAP` i `sorterSpaltevis` i `les.js` |
 
-## Lokale data
+## Lokale data og statistikk
 
 «Ny regning» fjerner regning og fordeling, men beholder potter og butikkminne.
 «Slett alle lokale data» nederst på siden fjerner også dette minnet. Appen
-bruker systemskrifter og gjør ingen eksterne nettverkskall.
+bruker systemskrifter. Anonym bruksstatistikk er avslått uten en konfigurert
+prosjektnøkkel, krever et aktivt ja fra brukeren og kan senere endres under
+«Personvern og statistikk».
 
 ## Publisering
 

@@ -41,6 +41,36 @@
   --radius:14px;
 }
 
+/* Frivillig analysevalg. Vises bare når anonym statistikk er konfigurert. */
+.analysevalg {
+  position: fixed;
+  z-index: 30;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: max(1rem, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  max-width: 48rem;
+  margin-inline: auto;
+  padding: 1rem;
+  color: #fff;
+  background: var(--gronn, #0d3527);
+  border-radius: 1rem;
+  box-shadow: 0 1rem 3rem rgb(0 0 0 / 24%);
+}
+
+.analysevalg strong { display: block; margin-bottom: .25rem; }
+.analysevalg p { margin: 0; font-size: .9rem; line-height: 1.45; }
+.analysevalg__knapper { display: flex; flex: 0 0 auto; gap: .5rem; }
+
+@media (max-width: 640px) {
+  .analysevalg { align-items: stretch; flex-direction: column; }
+  .analysevalg__knapper { width: 100%; }
+  .analysevalg__knapper .btn { flex: 1; }
+}
+
 /* ============================================================
    RESET
    ============================================================ */
@@ -513,6 +543,16 @@ main{ flex:1; width:min(100%, var(--maxw)); margin-inline:auto; padding:0 var(--
 .sum__linje{ font-size:.85rem; color:var(--ink-2); text-align:right; }
 .panel--deling{ margin-top:.5rem; }
 .panel--deling .field{ margin-top:.9rem; }
+.deling-avsender{
+  margin-top:1rem; padding:.75rem .85rem;
+  background:var(--paper-2); border:1px solid var(--line); border-radius:10px;
+}
+.deling-avsender .field__label{ margin:0; }
+.deling-avsender__hint{ margin:.2rem 0 .6rem; color:var(--ink-2); font-size:.85rem; }
+.deling-avsender--mangler{ animation:delingPuls .45s var(--ease); }
+@keyframes delingPuls{
+  50%{ border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+}
 .panel--mottatt{ border-color:var(--accent); box-shadow:0 10px 28px rgba(13,53,39,.1); }
 .panel__eyebrow{ margin:0 0 .35rem; color:var(--accent); font-size:.78rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
 .deling-valg{ margin:.8rem 0 0; color:var(--ink-2); }

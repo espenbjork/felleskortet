@@ -75,8 +75,9 @@
         </p>
         <p class="intro__privacy">
           <span aria-hidden="true">🔒</span>
-          Alt skjer lokalt i nettleseren din. Ingen kontodata forlater
-          maskinen før du selv velger å dele et oppgjør.
+          Regninger, beløp og fordelinger blir i nettleseren din. Hvis du
+          frivillig sier ja til anonym bruksstatistikk, teller vi bare hvilke
+          funksjoner som brukes.
         </p>
       </div>
 
@@ -119,10 +120,6 @@
         </div>
 
         <div class="roller">
-          <div class="rolle">
-            <p class="field__label" id="jeg-er-merkelapp">Jeg er</p>
-            <div class="chips" id="jeg-er" role="group" aria-labelledby="jeg-er-merkelapp"></div>
-          </div>
           <div class="rolle">
             <p class="field__label" id="betaler-merkelapp">Hvem legger ut for hele regninga?</p>
             <div class="chips" id="betaler-valg" role="group" aria-labelledby="betaler-merkelapp"></div>
@@ -272,6 +269,11 @@
           Lenka inneholder kjøpstekster og beløp, så send den bare til den du
           deler oppgjøret med.
         </p>
+        <div class="deling-avsender" id="deling-avsender">
+          <p class="field__label" id="del-som-merkelapp">Hvilken pott er din?</p>
+          <p class="deling-avsender__hint">Navnet brukes som avsender når du deler oppgjøret.</p>
+          <div class="chips" id="del-som" role="group" aria-labelledby="del-som-merkelapp"></div>
+        </div>
         <div class="panel__actions">
           <button class="btn btn--primary" type="button" id="knapp-del">Del hele oppgjøret</button>
         </div>
@@ -311,11 +313,13 @@
       Bygget av <a href="https://espenbjork.github.io/">Espen Bjørk</a> ·
       <a href="https://github.com/espenbjork/felleskortet">Kildekode ↗</a>
     </p>
+    <button class="bunn__slett" type="button" id="knapp-analysevalg" hidden>Personvern og statistikk</button>
     <button class="bunn__slett" type="button" id="knapp-slett-alt">Slett alle lokale data</button>
   </footer>
 
   <script src="kjerne.js?v=dev" defer></script>
   <script src="les.js?v=dev" defer></script>
+  <script src="analyse.js?v=dev" defer></script>
   <script src="app.js?v=dev" defer></script>
 </body>
 </html>
