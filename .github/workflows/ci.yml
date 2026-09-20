@@ -1,0 +1,24 @@
+name: Test Felleskortet
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hent koden
+        uses: actions/checkout@v4
+
+      - name: Sett opp Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Valider HTML og JavaScript
+        run: npx --yes html-validate index.html && node --check kjerne.js && node --check les.js && node --check app.js
+
+      - name: Kjør tester
+        run: node --test tests/*.test.js

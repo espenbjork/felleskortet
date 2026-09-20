@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   ┌──────────────────────────────────────────────────────────────────┐
-  │  Kortsveip, del regninga ved å sveipe hver utgift i en pott.      │
+  │  Felleskortet, del regninga ved å sveipe hver utgift i en pott.   │
   │  Ingen backend. Regninga blir liggende i din egen nettleser.      │
   │  Innlesing: les.js · resten: app.js (KONFIG-blokka øverst).       │
   └──────────────────────────────────────────────────────────────────┘
@@ -10,7 +10,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Kortsveip · del regninga ved å sveipe</title>
+  <title>Felleskortet · del regninga ved å sveipe</title>
   <meta name="description" content="Last opp månedens regning, sveip hver utgift i en pott du har valgt selv, og få et ferdig oppgjør. Alt skjer i nettleseren din.">
   <meta name="author" content="Espen Bjørk">
   <meta name="color-scheme" content="light">
@@ -18,16 +18,16 @@
 
   <meta property="og:type" content="website">
   <meta property="og:locale" content="nb_NO">
-  <meta property="og:title" content="Kortsveip · del regninga ved å sveipe">
+  <meta property="og:title" content="Felleskortet · del regninga ved å sveipe">
   <meta property="og:description" content="Last opp månedens regning, sveip hver utgift i en pott, og få et ferdig oppgjør.">
-  <meta property="og:url" content="https://espenbjork.github.io/kortsveip/">
-  <meta property="og:image" content="https://espenbjork.github.io/assets/og-image.svg">
+  <meta property="og:url" content="https://felleskortet.no/">
+  <meta property="og:image" content="https://felleskortet.no/favicon.svg">
   <meta name="twitter:card" content="summary_large_image">
 
-  <link rel="canonical" href="https://espenbjork.github.io/kortsveip/">
+  <link rel="canonical" href="https://felleskortet.no/">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=dev">
 </head>
 <body>
   <a class="skip-link" href="#hovedinnhold">Hopp til innhold</a>
@@ -35,7 +35,7 @@
   <header class="topbar">
     <a class="topbar__brand" href="./">
       <span class="topbar__mark" aria-hidden="true"></span>
-      Kortsveip
+      Felleskortet
     </a>
     <nav class="steps" aria-label="Skjermer">
       <button class="steps__item" type="button" data-skjerm="start" aria-current="step">1 Importer</button>
@@ -86,7 +86,7 @@
         <p class="panel__hint" id="deling-mottatt-info"></p>
         <p class="deling-valg">
           Godta fordelingen for å gå rett til oppgjøret, eller fordel selv.
-          Da viser Kortsveip bare kjøpene dere er uenige om etterpå.
+          Da viser Felleskortet bare kjøpene dere er uenige om etterpå.
         </p>
         <div class="panel__actions">
           <button class="btn btn--primary btn--big" type="button" id="knapp-godta-deling">Godta fordelingen</button>
@@ -135,7 +135,7 @@
         <h2 class="panel__title">Legg inn regninga</h2>
         <p class="panel__hint">
           Velg eller dra inn én eller flere fakturaer fra banken, eller marker
-          en regning i nettbanken og lim den inn. Kortsveip legger alt i én
+          en regning i nettbanken og lim den inn. Felleskortet legger alt i én
           bunke før du starter sveipingen.
         </p>
 
@@ -268,7 +268,7 @@
         <h2 class="panel__title">Del hele oppgjøret</h2>
         <p class="panel__hint">
           Den andre kan godta fordelingen din eller fordele alt selv. Velger
-          de å fordele selv, viser Kortsveip kjøpene dere er uenige om.
+          de å fordele selv, viser Felleskortet kjøpene dere er uenige om.
           Lenka inneholder kjøpstekster og beløp, så send den bare til den du
           deler oppgjøret med.
         </p>
@@ -278,7 +278,7 @@
         <p class="field">
           <label class="field__label" for="kode-inn">Fikk du en lenke? Lim den inn her</label>
           <input class="field__input" type="text" id="kode-inn" autocomplete="off" spellcheck="false"
-                 placeholder="https://espenbjork.github.io/kortsveip/#deling=…">
+                 placeholder="https://felleskortet.no/#deling=…">
         </p>
         <div class="panel__actions">
           <button class="btn btn--ghost" type="button" id="knapp-sammenlign">Sammenlign</button>
@@ -309,13 +309,13 @@
   <footer class="bunn">
     <p>
       Bygget av <a href="https://espenbjork.github.io/">Espen Bjørk</a> ·
-      <a href="https://github.com/espenbjork/espenbjork.github.io/tree/main/kortsveip">Kildekode ↗</a>
+      <a href="https://github.com/espenbjork/felleskortet">Kildekode ↗</a>
     </p>
     <button class="bunn__slett" type="button" id="knapp-slett-alt">Slett alle lokale data</button>
   </footer>
 
-  <script src="kjerne.js?v=4" defer></script>
-  <script src="les.js?v=4" defer></script>
-  <script src="app.js?v=4" defer></script>
+  <script src="kjerne.js?v=dev" defer></script>
+  <script src="les.js?v=dev" defer></script>
+  <script src="app.js?v=dev" defer></script>
 </body>
 </html>

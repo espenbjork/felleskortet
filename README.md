@@ -1,13 +1,14 @@
-# Kortsveip
+# Felleskortet
 
 Del en regning ved å sveipe hver utgift i en pott. Laget for å slippe å sitte
 med kredittkortregninga og en kalkulator den 20. hver måned.
 
-🔗 https://espenbjork.github.io/kortsveip/
+🔗 https://felleskortet.no/
 
 Ren HTML, CSS og JS. Ingen rammeverk, ingen byggesteg, ingen server, ingen
 produksjonsavhengigheter eller eksterne skrifter. **All kontodata blir liggende
-i nettleseren** (`localStorage`), og det finnes ikke noe sted å sende den.
+i nettleseren** (`localStorage`) til brukeren selv velger å dele et oppgjør som
+en lenke med den andre personen.
 
 ## Hva den gjør
 
@@ -128,7 +129,7 @@ seg.
 
 «Del hele oppgjøret» pakker regninger, transaksjoner, potter og avsenderens
 fordeling i `#deling=…` bakerst i adressen. Innholdet komprimeres i nettleseren.
-`#`-delen sendes aldri til Kortsveip eller GitHub Pages, men den inneholder
+`#`-delen sendes aldri til Felleskortet eller GitHub Pages, men den inneholder
 kjøpstekster og beløp og skal derfor bare sendes til den oppgjøret gjelder.
 
 Mottakeren trenger ikke laste inn de samme filene. Når lenka åpnes, kan hen:
@@ -156,6 +157,12 @@ lastet inn de samme regningene.
 «Ny regning» fjerner regning og fordeling, men beholder potter og butikkminne.
 «Slett alle lokale data» nederst på siden fjerner også dette minnet. Appen
 bruker systemskrifter og gjør ingen eksterne nettverkskall.
+
+## Publisering
+
+Nettsiden publiseres automatisk til GitHub Pages ved push til `main` og bruker
+`felleskortet.no` som eget domene. DNS for rotdomenet peker til GitHub Pages,
+mens `www` er et CNAME-alias. HTTPS håndteres av GitHub Pages.
 
 ## Taster
 

@@ -2,7 +2,7 @@
 (function eksporter(rot, lag) {
   const api = lag();
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else rot.KortsveipKjerne = api;
+  else rot.FelleskortetKjerne = api;
 }(typeof globalThis !== 'undefined' ? globalThis : this, () => {
   'use strict';
 

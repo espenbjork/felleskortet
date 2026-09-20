@@ -1,5 +1,5 @@
 /* ============================================================
-   KORTSVEIP
+   FELLESKORTET
    Del en regning ved å sveipe hver utgift i en pott.
 
    Ingen backend, ingen rammeverk, ingen byggesteg. Regninga
@@ -25,7 +25,7 @@ const {
   fordelAndeler,
   hash: kortHash,
   transaksjonsNokler,
-} = window.KortsveipKjerne;
+} = window.FelleskortetKjerne;
 
 /* ─── 1. KONFIG ─────────────────────────────────────────── */
 
@@ -36,8 +36,10 @@ const KONFIG = {
   synligeKort: 3,
   toastMs: 7000,
   maksRetninger: 4,    // flere potter enn dette havner som knapper under
-  lagerNokkel: 'kortsveip.tilstand.v2',
-  minneNokkel: 'kortsveip.minne.v2',
+  lagerNokkel: 'felleskortet.tilstand.v1',
+  minneNokkel: 'felleskortet.minne.v1',
+  gamleLagerNokler: ['kortsveip.tilstand.v2'],
+  gamleMinneNokler: ['kortsveip.minne.v2'],
 };
 
 // Rekkefølgen potter får sveiperetning i.
@@ -223,8 +225,10 @@ function lagreMinne() {
 }
 function hentLagret() {
   try {
-    minne = JSON.parse(localStorage.getItem(KONFIG.minneNokkel) || '{}') || {};
-    const d = JSON.parse(localStorage.getItem(KONFIG.lagerNokkel) || 'null');
+    const gammeltMinne = KONFIG.gamleMinneNokler.map((k) => localStorage.getItem(k)).find(Boolean);
+    const gammelTilstand = KONFIG.gamleLagerNokler.map((k) => localStorage.getItem(k)).find(Boolean);
+    minne = JSON.parse(localStorage.getItem(KONFIG.minneNokkel) || gammeltMinne || '{}') || {};
+    const d = JSON.parse(localStorage.getItem(KONFIG.lagerNokkel) || gammelTilstand || 'null');
     if (!d || !Array.isArray(d.poster) || !d.poster.length) return false;
     S.fakturaer = d.fakturaer || [];
     S.periode = d.periode || { fra: null, til: null, faktura: null };
@@ -1611,7 +1615,7 @@ function lastNedCsv() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `kortsveip-oppgjor-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `felleskortet-oppgjor-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
@@ -1771,7 +1775,7 @@ function koble() {
     $('#delings-lenke').value = lenke;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Kortsveip-oppgjør', text: `${pottNavn(S.jeg)} har delt et oppgjør med deg.`, url: lenke });
+        await navigator.share({ title: 'Felleskortet-oppgjør', text: `${pottNavn(S.jeg)} har delt et oppgjør med deg.`, url: lenke });
         el.dataset.type = 'ok';
         el.textContent = 'Oppgjøret er delt.';
         $('#delings-lenke').hidden = true;
@@ -1850,6 +1854,8 @@ function koble() {
     try {
       localStorage.removeItem(KONFIG.lagerNokkel);
       localStorage.removeItem(KONFIG.minneNokkel);
+      KONFIG.gamleLagerNokler.forEach((k) => localStorage.removeItem(k));
+      KONFIG.gamleMinneNokler.forEach((k) => localStorage.removeItem(k));
     } catch { /* appen er allerede nullstilt i minnet */ }
     if (location.hash) history.replaceState(null, '', location.pathname);
   });

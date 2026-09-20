@@ -1,5 +1,5 @@
 /* ============================================================
-   KORTSVEIP · INNLESING
+   FELLESKORTET · INNLESING
    Gjør en regning om til en liste utgifter, uansett hvilken
    form banken serverer den i.
 

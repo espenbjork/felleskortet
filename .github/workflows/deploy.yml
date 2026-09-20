@@ -1,0 +1,40 @@
+name: Publiser Felleskortet
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Hent koden
+        uses: actions/checkout@v4
+
+      - name: Cache-bust CSS og JavaScript
+        run: sed -i "s/?v=dev/?v=${GITHUB_SHA::8}/g" index.html
+
+      - name: Sett opp Pages
+        uses: actions/configure-pages@v5
+
+      - name: Lag publiseringspakke
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Publiser
+        id: deployment
+        uses: actions/deploy-pages@v4
