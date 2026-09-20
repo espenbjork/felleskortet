@@ -1380,7 +1380,6 @@ function importerMottattDeling(godta) {
   });
   if (!godta) analyse.startTidtaking();
   visSkjerm(godta ? 'oppgjor' : 'sveip');
-  if (godta) sporFerdigOppgjor();
   return { navn: S.andre.navn, antall: S.poster.length };
 }
 
