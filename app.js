@@ -24,7 +24,9 @@ const {
   finnUenigheter,
   fordelAndeler,
   hash: kortHash,
+  kompaktDelingsdata,
   transaksjonsNokler,
+  utvidDelingsdata,
 } = window.FelleskortetKjerne;
 
 const analyse = window.FelleskortetAnalyse || {
@@ -1242,28 +1244,34 @@ async function dekomprimer(bytes) {
   return new Response(strøm).text();
 }
 
-async function pakkDeling(data) {
+async function pakkDeling(data, versjon = 4) {
   const json = JSON.stringify(data);
   if ('CompressionStream' in window && 'DecompressionStream' in window) {
-    try { return `g4.${B64.innBytes(await komprimer(json))}`; } catch { /* bruk ukomprimert */ }
+    try { return `g${versjon}.${B64.innBytes(await komprimer(json))}`; } catch { /* bruk ukomprimert */ }
   }
-  return `j4.${B64.inn(json)}`;
+  return `j${versjon}.${B64.inn(json)}`;
+}
+
+function hentDelingskode(rå) {
+  const tekst = String(rå).trim();
+  const fraLenke = tekst.match(/#(?:deling|d)=((?:[gj][45]\.)?[A-Za-z0-9_-]+)/);
+  return (fraLenke ? fraLenke[1] : tekst).trim();
 }
 
 async function lesDelingsdata(rå) {
-  const kode = String(rå).trim().replace(/^.*#deling=/, '');
+  const kode = hentDelingskode(rå);
   if (kode.length > 1500000) throw new Error('Delingslenka er for stor.');
   let json;
-  if (kode.startsWith('g4.')) {
+  if (/^g[45]\./.test(kode)) {
     if (!('DecompressionStream' in window)) throw new Error('Nettleseren kan ikke åpne denne delingslenka. Prøv en nyere nettleser.');
     json = await dekomprimer(B64.utBytes(kode.slice(3)));
-  } else if (kode.startsWith('j4.')) {
+  } else if (/^j[45]\./.test(kode)) {
     json = B64.ut(kode.slice(3));
   } else {
     json = B64.ut(kode);
   }
   if (json.length > 5000000) throw new Error('Delingslenka inneholder for mye data.');
-  return JSON.parse(json);
+  return utvidDelingsdata(JSON.parse(json));
 }
 
 /** Avtrykk av stabile transaksjonsnøkler, uavhengig av importrekkefølgen. */
@@ -1283,14 +1291,12 @@ async function lagDelingskode() {
   const poster = aktivePoster();
   const fakturaer = S.fakturaer.filter((f) => poster.some((p) => p.faktura === f.id));
   const fakturaIndeks = new Map(fakturaer.map((f, i) => [f.id, i]));
-  return pakkDeling({
-    v: 4,
+  return pakkDeling(kompaktDelingsdata({
     fra: S.jeg ? pottNavn(S.jeg) : 'Den andre',
     potter: S.potter.map((p) => ({ n: p.navn, t: p.type })),
     betaler: S.potter.findIndex((p) => p.id === S.betaler),
     fakturaer: fakturaer.map((f) => ({ n: f.navn, k: f.kilde || '' })),
     poster: poster.map((p) => ({
-      k: p.delingsnokkel,
       d: p.dato || '',
       x: p.tekst,
       b: p.belop,
@@ -1298,16 +1304,17 @@ async function lagDelingskode() {
       f: fakturaIndeks.get(p.faktura) || 0,
       p: S.potter.findIndex((x) => x.id === p.pott),
     })),
-  });
+  }), 5);
 }
 
 async function delingslenke() {
-  const base = location.origin + location.pathname;
-  return `${base}#deling=${await lagDelingskode()}`;
+  const base = location.hostname === 'felleskortet.no'
+    ? 'https://felleskortet.no/' : location.origin + location.pathname;
+  return `${base}#d=${await lagDelingskode()}`;
 }
 
-function gyldigV4(d) {
-  return d && d.v === 4 && Array.isArray(d.potter) && d.potter.length > 0
+function gyldigFullDeling(d) {
+  return d && (d.v === 4 || d.v === 5) && Array.isArray(d.potter) && d.potter.length > 0
     && d.potter.length <= 30 && Array.isArray(d.fakturaer) && d.fakturaer.length <= 100
     && Array.isArray(d.poster) && d.poster.length > 0 && d.poster.length <= 10000
     && d.poster.every((p) => p && typeof p.x === 'string' && Number.isFinite(Number(p.b))
@@ -1334,7 +1341,7 @@ function visMottattDeling(d) {
 /** Oppretter en lokal bunke fra hele oppgjøret i versjon 4-lenka. */
 function importerMottattDeling(godta) {
   const d = mottattDeling;
-  if (!gyldigV4(d)) return { feil: 'Delingslenka mangler deler av oppgjøret.' };
+  if (!gyldigFullDeling(d)) return { feil: 'Delingslenka mangler deler av oppgjøret.' };
   pottTeller = 0;
   S.potter = d.potter.map((p) => nyPott(String(p.n || 'Pott').slice(0, 50), POTTTYPER[p.t] ? p.t : 'person'));
   S.fakturaer = d.fakturaer.map((f, i) => ({
@@ -1363,6 +1370,7 @@ function importerMottattDeling(godta) {
     f.til = datoer[datoer.length - 1] || null;
     f.fingeravtrykk = fakturaFingeravtrykk(poster);
   });
+  sikreDelingsnokler();
   S.jeg = (personer().find((p) => p.navn.toLowerCase() !== String(d.fra || '').toLowerCase()) || {}).id || null;
   S.betaler = S.potter[d.betaler] ? S.potter[d.betaler].id : null;
   S.periode = { fra: null, til: null, faktura: null };
@@ -1388,11 +1396,11 @@ function importerMottattDeling(godta) {
  * først i køen, og det bare den andre har tatt, hentes inn.
  */
 async function brukDelingskode(rå) {
-  const kode = String(rå).trim().replace(/^.*#deling=/, '');
+  const kode = hentDelingskode(rå);
   let d;
   try { d = await lesDelingsdata(kode); } catch (feil) { return { feil: feil.message || 'Koden ser ikke riktig ut. Kopier hele lenka på nytt.' }; }
-  if (d && d.v === 4) {
-    if (!gyldigV4(d)) return { feil: 'Delingslenka mangler deler av oppgjøret.' };
+  if (d && (d.v === 4 || d.v === 5)) {
+    if (!gyldigFullDeling(d)) return { feil: 'Delingslenka mangler deler av oppgjøret.' };
     visMottattDeling(d);
     analyse.spor('shared_settlement_opened', {
       transactions_count: d.poster.length,
@@ -1970,15 +1978,15 @@ async function start() {
 
   // Delingslenke i adressefeltet kan nå inneholde hele oppgjøret.
   const hash = location.hash || '';
-  const startetMedDeling = hash.includes('deling=');
-  if (hash.includes('deling=')) {
+  const startetMedDeling = /#(?:deling|d)=/.test(hash);
+  if (startetMedDeling) {
     const res = await brukDelingskode(hash);
     const el = $('#delings-svar');
     el.hidden = false;
     if (res.feil) {
       el.dataset.type = 'feil';
       el.textContent = res.feil;
-      $('#kode-inn').value = hash.replace(/^.*#deling=/, '');
+      $('#kode-inn').value = hentDelingskode(hash);
       melding(res.feil, 'feil');
     } else if (!res.mottatt) {
       el.dataset.type = 'ok';

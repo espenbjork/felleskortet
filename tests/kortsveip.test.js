@@ -6,8 +6,10 @@ const {
   fakturaFingeravtrykk,
   finnUenigheter,
   fordelAndeler,
+  kompaktDelingsdata,
   postSignatur,
   transaksjonsNokler,
+  utvidDelingsdata,
 } = require('../kjerne.js');
 const { lesTekst, tilTall } = require('../les.js');
 
@@ -72,4 +74,26 @@ test('bare ulike fordelinger blir markert som uenigheter', () => {
   const navn = { meg: 'Espen', felles: 'Felles', samboer: 'Victoria' };
   const deres = { 1: 'Espen', 2: 'Victoria', 3: 'Victoria' };
   assert.deepEqual(finnUenigheter(poster, deres, (id) => navn[id]), ['2']);
+});
+
+test('kompakt deling beholder hele oppgjøret uten transaksjonsnøkler', () => {
+  const original = {
+    fra: 'Espen',
+    potter: [{ n: 'Espen', t: 'person' }, { n: 'Felles', t: 'felles' }],
+    betaler: 0,
+    fakturaer: [{ n: 'Amex august', k: 'amex.pdf' }],
+    poster: [{ k: 'unødvendig.nøkkel.1', d: '2026-08-03', x: 'REMA 1000', b: 438.2, e: 'Espen', f: 0, p: 1 }],
+  };
+  const kompakt = kompaktDelingsdata(original);
+  const utvidet = utvidDelingsdata(kompakt);
+  assert.equal(kompakt[0], 5);
+  assert.equal(JSON.stringify(kompakt).includes('unødvendig'), false);
+  assert.deepEqual(utvidet, {
+    v: 5,
+    fra: 'Espen',
+    potter: original.potter,
+    betaler: 0,
+    fakturaer: original.fakturaer,
+    poster: [{ d: '2026-08-03', x: 'REMA 1000', b: 438.2, e: 'Espen', f: 0, p: 1 }],
+  });
 });

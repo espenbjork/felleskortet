@@ -130,7 +130,8 @@ seg.
 
 «Del hele oppgjøret» pakker regninger, transaksjoner, potter og avsenderens
 fordeling i `#deling=…` bakerst i adressen. Innholdet komprimeres i nettleseren.
-`#`-delen sendes aldri til Felleskortet eller GitHub Pages, men den inneholder
+Nye lenker bruker et kompakt versjon 5-format uten overflødige
+transaksjonsnøkler. `#`-delen sendes aldri til Felleskortet eller GitHub Pages, men den inneholder
 kjøpstekster og beløp og skal derfor bare sendes til den oppgjøret gjelder.
 
 Mottakeren trenger ikke laste inn de samme filene. Når lenka åpnes, kan hen:
@@ -139,7 +140,7 @@ Mottakeren trenger ikke laste inn de samme filene. Når lenka åpnes, kan hen:
 - **Fordele selv** ved å sveipe hele bunken på nytt. Etterpå legges bare
   uenighetene først i køen, og kortene viser begge valgene.
 
-Versjon 2- og 3-lenker fra tidligere utgaver kan fortsatt leses. De gamle
+Versjon 2-, 3- og 4-lenker fra tidligere utgaver kan fortsatt leses. De gamle
 formatene inneholder bare fordelingen og krever derfor fortsatt at begge har
 lastet inn de samme regningene.
 
