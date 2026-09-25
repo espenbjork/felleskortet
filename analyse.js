@@ -159,19 +159,27 @@
     boks.className = 'analysevalg';
     boks.setAttribute('aria-labelledby', 'analysevalg-tittel');
     boks.innerHTML = `
-      <div>
-        <strong id="analysevalg-tittel">Hjelp oss å gjøre Felleskortet bedre?</strong>
-        <p>Vi vil telle anonyme handlinger, som hvor mange som sveiper og fullfører et oppgjør. Vi sender aldri regninger, beløp, butikknavn, filnavn eller fordelinger.</p>
-      </div>
-      <div class="analysevalg__knapper">
-        <button class="btn btn--primary" type="button" data-analyse="ja">Ja, tell anonymt</button>
-        <button class="btn btn--ghost" type="button" data-analyse="nei">Nei takk</button>
+      <div class="analysevalg__inner">
+        <div>
+          <strong id="analysevalg-tittel">Hjelp oss å gjøre Felleskortet bedre?</strong>
+          <p>Vi vil telle anonyme handlinger, som hvor mange som sveiper og fullfører et oppgjør. Vi sender aldri regninger, beløp, butikknavn, filnavn eller fordelinger.</p>
+        </div>
+        <div class="analysevalg__knapper">
+          <button class="btn btn--primary" type="button" data-analyse="ja">Ja, tell anonymt</button>
+          <button class="btn btn--ghost" type="button" data-analyse="nei">Nei takk</button>
+        </div>
       </div>`;
     boks.addEventListener('click', (e) => {
       const knapp = e.target.closest('[data-analyse]');
       if (knapp) velg(knapp.dataset.analyse);
     });
-    document.body.append(boks);
+    // Boksen ligger i flyten øverst, ikke som et lag over sida. Et fast lag
+    // nederst dekket knappene under seg – på telefon lå det rett oppå
+    // «Legg til regninga», og sveipeknappene kunne ikke engang rulles fram.
+    const topp = document.querySelector('.topbar');
+    if (topp) topp.before(boks); else document.body.prepend(boks);
+    // Hentes boksen fram igjen fra bunnen av sida, må vi rulle til den.
+    boks.scrollIntoView({ block: 'nearest' });
   }
 
   window.FelleskortetAnalyse = {

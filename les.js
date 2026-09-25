@@ -319,7 +319,7 @@ function finnKolonner(rader) {
    tilhører, så kortet kan vise det. */
 const KORTEIER = /^\d{4,6}\*{2,}\d{3,4}$/;
 // Amex: «Nye transaksjoner for Espen Bjørk Kort som slutter med 71019»
-const KORTEIER_LINJE = /^nye transaksjoner for\s+(.+?)(?:\s+kort som slutter.*)?$/i;
+const KORTEIER_LINJE = /^(?:nye\s+)?transaksjoner for\s+(.+?)(?:\s+kort som slutter.*)?$/i;
 
 function byggPost(rad, kol) {
   const hent = (i) => (i >= 0 && rad[i] != null ? rad[i] : '');
@@ -551,6 +551,14 @@ async function blåsOpp(bytes, format) {
   return ut;
 }
 
+/*
+ * PDF-er satt med StandardEncoding legger de nordiske bokstavene andre
+ * steder enn latin-1 gjør. Bare kodene som faktisk er i veien.
+ */
+const STANDARD_TEGN = {
+  0xe1: 'Æ', 0xe9: 'Ø', 0xea: 'Œ', 0xf1: 'æ', 0xf9: 'ø', 0xfa: 'œ', 0xfb: 'ß',
+};
+
 /** Tar en PDF-strenglitteral og gir teksten. Takler \( \) og oktal. */
 function pdfStreng(rå) {
   let ut = ''; let i = 0;
@@ -575,30 +583,114 @@ function pdfStreng(rå) {
   return ut;
 }
 
-// Td/TD flytter, Tm setter, Tj/TJ skriver.
+// BT nullstiller, Td/TD flytter, Tm setter, T* går til neste linje,
+// TL setter linjeavstand, Tj/TJ skriver.
 const PDFOPS = new RegExp(
-  '([-\\d.]+)\\s+([-\\d.]+)\\s+(Td|TD)'
+  '(BT)\\b'
+  + '|([-\\d.]+)\\s+(TL)\\b'
+  + '|(T\\*)'
+  + '|([-\\d.]+)\\s+([-\\d.]+)\\s+(Td|TD)'
   + '|([-\\d.]+)\\s+([-\\d.]+)\\s+([-\\d.]+)\\s+([-\\d.]+)\\s+([-\\d.]+)\\s+([-\\d.]+)\\s+Tm'
-  + '|\\(((?:[^()\\\\]|\\\\.)*)\\)\\s*Tj'
+  + '|\\(((?:[^()\\\\]|\\\\.)*)\\)\\s*(?:Tj|\\x27)'
   + '|\\[((?:[^\\[\\]\\\\]|\\\\.)*)\\]\\s*TJ', 'g');
 
-/** Plukker ut (y, x, tekst) fra én innholdsstrøm. */
-function tekstBiter(innhold, side) {
+/**
+ * Plukker ut (y, x, tekst) fra én innholdsstrøm.
+ *
+ * BT nullstiller tekstmatrisen, og Td flytter relativt til forrige
+ * linjestart. Uten nullstillingen driver koordinatene av gårde, hver
+ * celle får sin egen y, og ingen rader settes sammen igjen. Fakturaer
+ * som bruker Tm (absolutt) skjuler feilen, de som bruker Td røper den.
+ */
+function tekstBiter(innhold, side, tegnsett) {
   const biter = [];
-  let x = 0; let y = 0;
+  let x = 0; let y = 0; let avstand = 0;
+  const legg = (t) => { if (t) biter.push({ side, y: Math.round(y * 10) / 10, x, t }); };
+
   PDFOPS.lastIndex = 0;
   let m;
   while ((m = PDFOPS.exec(innhold)) !== null) {
-    if (m[3]) { x += Number(m[1]); y += Number(m[2]); }
-    else if (m[9] !== undefined) { x = Number(m[8]); y = Number(m[9]); }
-    else if (m[10] !== undefined) biter.push({ side, y: Math.round(y * 10) / 10, x, t: pdfStreng(m[10]) });
-    else if (m[11] !== undefined) {
-      const deler = m[11].match(/\((?:[^()\\]|\\.)*\)/g) || [];
-      const t = deler.map((p) => pdfStreng(p.slice(1, -1))).join('');
-      if (t.trim()) biter.push({ side, y: Math.round(y * 10) / 10, x, t });
+    if (m[1]) { x = 0; y = 0; }
+    else if (m[3]) { avstand = Number(m[2]); }
+    else if (m[4]) { y -= avstand; }
+    else if (m[7]) {
+      x += Number(m[5]); y += Number(m[6]);
+      if (m[7] === 'TD') avstand = -Number(m[6]);
+    } else if (m[13] !== undefined) { x = Number(m[12]); y = Number(m[13]); }
+    else if (m[14] !== undefined) legg(tegnsett(pdfStreng(m[14])));
+    else if (m[15] !== undefined) {
+      const deler = m[15].match(/\((?:[^()\\]|\\.)*\)/g) || [];
+      const t = tegnsett(deler.map((p) => pdfStreng(p.slice(1, -1))).join(''));
+      if (t.trim()) legg(t);
     }
   }
   return biter;
+}
+
+function settTegn(kart, uenige, kode, tegn) {
+  if (kart.has(kode) && kart.get(kode) !== tegn) uenige.add(kode);
+  else kart.set(kode, tegn);
+}
+
+/**
+ * Bygger en tegnsett-oversetter for dokumentet.
+ *
+ * To ting kan stå i veien for de norske bokstavene. StandardEncoding
+ * legger æ og ø andre steder enn latin-1. Og bokstaver som mangler helt
+ * i grunnsettet, som å, tegnes med en egen CID-font der byteparene er
+ * glyfnumre. De har hvert sitt ToUnicode-kart, som vi slår sammen. Er
+ * to kart uenige om en kode, dropper vi den heller enn å gjette feil.
+ */
+function lagTegnsett(strommer, rå) {
+  const alt = rå + strommer.join('');
+  const standard = alt.includes('/StandardEncoding') && !alt.includes('/WinAnsiEncoding');
+
+  const cid = new Map();
+  const uenige = new Set();
+  for (const s of strommer) {
+    if (!s.includes('begincmap')) continue;
+    for (const blokk of s.match(/beginbfrange[\s\S]*?endbfrange/g) || []) {
+      const medListe = /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*\[([\s\S]*?)\]/g;
+      let d;
+      while ((d = medListe.exec(blokk)) !== null) {
+        const lo = parseInt(d[1], 16);
+        (d[3].match(/<([0-9A-Fa-f]+)>/g) || []).forEach((h, i) => {
+          settTegn(cid, uenige, lo + i, String.fromCodePoint(parseInt(h.slice(1, -1), 16)));
+        });
+      }
+      const medStart = /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g;
+      while ((d = medStart.exec(blokk)) !== null) {
+        const lo = parseInt(d[1], 16); const hi = parseInt(d[2], 16); const fra = parseInt(d[3], 16);
+        for (let i = 0; i <= hi - lo && i < 512; i += 1) {
+          settTegn(cid, uenige, lo + i, String.fromCodePoint(fra + i));
+        }
+      }
+    }
+    for (const blokk of s.match(/beginbfchar[\s\S]*?endbfchar/g) || []) {
+      const par = /<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g;
+      let d;
+      while ((d = par.exec(blokk)) !== null) {
+        settTegn(cid, uenige, parseInt(d[1], 16), String.fromCodePoint(parseInt(d[2], 16)));
+      }
+    }
+  }
+  uenige.forEach((k) => cid.delete(k));
+
+  return (tekst) => {
+    if (!tekst) return tekst;
+    // NUL-byte betyr at byteparene er glyfnumre, ikke bokstaver.
+    if (cid.size && tekst.includes('\u0000')) {
+      let ut = '';
+      for (let i = 0; i + 1 < tekst.length; i += 2) {
+        const tegn = cid.get((tekst.charCodeAt(i) << 8) | tekst.charCodeAt(i + 1));
+        if (tegn && tegn !== '\uFFFD') ut += tegn;
+      }
+      return ut;
+    }
+    if (!standard) return tekst;
+    return tekst.replace(/[\u00e1\u00e9\u00ea\u00f1\u00f9\u00fa\u00fb]/g,
+      (c) => STANDARD_TEGN[c.charCodeAt(0)] || c);
+  };
 }
 
 /** Leser en PDF og gir tilbake tekstlinjer i leserekkefølge. */
@@ -607,8 +699,8 @@ async function lesPdfLinjer(buffer) {
     throw new Error('Nettleseren din kan ikke pakke ut PDF-er. Kopier teksten fra PDF-leseren og lim den inn i stedet.');
   }
   const hel = somTekst(new Uint8Array(buffer));
-  const biter = [];
-  let side = 0;
+
+  const utpakket = [];
   const re = /stream\r?\n/g;
   let m;
   while ((m = re.exec(hel)) !== null) {
@@ -617,10 +709,16 @@ async function lesPdfLinjer(buffer) {
     if (slutt < 0) continue;
     const bytes = Uint8Array.from(hel.slice(start, slutt), (c) => c.charCodeAt(0) & 0xff);
     const ut = await blåsOpp(bytes, 'deflate');
-    if (!ut.length) continue;                      // bilder og annet ukomprimert hopper vi over
-    const innhold = somTekst(ut);
+    if (ut.length) utpakket.push(somTekst(ut));    // bilder og annet hopper vi over
+  }
+
+  // Tegnsettet må være kjent før teksten tolkes.
+  const tegnsett = lagTegnsett(utpakket, hel);
+  const biter = [];
+  let side = 0;
+  for (const innhold of utpakket) {
     if (!/T[jJ]/.test(innhold)) continue;
-    biter.push(...tekstBiter(innhold, side));
+    biter.push(...tekstBiter(innhold, side, tegnsett));
     side += 1;
   }
   if (!biter.length) {
@@ -705,7 +803,13 @@ function lesPdfTekst(linjer) {
     if (!dm) continue;                       // uten dato er det en sum- eller notatlinje
     const dato = tilDato(dm[1]);
     if (!dato) continue;
-    rest = rest.slice(dm[0].length).replace(/\s+/g, ' ').trim();
+    rest = rest.slice(dm[0].length)
+      .replace(/\b\d{4,6}\*{2,}\d{3,4}\b/g, ' ')                   // maskert kortnummer i rada
+      .replace(/\s*\d[\d\s.']*[.,]\d{2}\s+[A-Z]{3}\s*$/, '')        // «1.726,90 NOK» før totalen
+      .replace(/\s*,\s*/g, ', ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/[,\s-]+$/, '');
     if (!/[a-zæøå]{2}/i.test(rest)) continue;
 
     poster.push(eier ? { dato, tekst: rest, belop, eier } : { dato, tekst: rest, belop });
