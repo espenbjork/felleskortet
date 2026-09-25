@@ -41,32 +41,35 @@
   --radius:14px;
 }
 
-/* Frivillig analysevalg. Vises bare når anonym statistikk er konfigurert. */
+/* Frivillig analysevalg. Vises bare når anonym statistikk er konfigurert.
+   Den ligger i flyten øverst, ikke som et fast lag nederst: et lag der
+   dekket knappene under seg, og sveipeskjermen kan ikke rulles fri. */
 .analysevalg {
-  position: fixed;
-  z-index: 30;
-  right: max(1rem, env(safe-area-inset-right));
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  left: max(1rem, env(safe-area-inset-left));
+  color: var(--on-green);
+  background: var(--brg);
+  padding-top: env(safe-area-inset-top);
+}
+.analysevalg__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1.25rem;
-  max-width: 48rem;
+  width: min(100%, var(--maxw));
   margin-inline: auto;
-  padding: 1rem;
-  color: #fff;
-  background: var(--gronn, #0d3527);
-  border-radius: 1rem;
-  box-shadow: 0 1rem 3rem rgb(0 0 0 / 24%);
+  padding: .9rem var(--gutter);
 }
-
 .analysevalg strong { display: block; margin-bottom: .25rem; }
 .analysevalg p { margin: 0; font-size: .9rem; line-height: 1.45; }
 .analysevalg__knapper { display: flex; flex: 0 0 auto; gap: .5rem; }
+/* Standardknappene er laget for lys bakgrunn og forsvinner mot det dype
+   grønne. Her snus de: fylt hvit for ja, tynn hvit ramme for nei. */
+.analysevalg .btn--primary { background: var(--on-green); color: var(--brg); }
+.analysevalg .btn--primary:hover:not(:disabled) { background: #fff; color: var(--brg); }
+.analysevalg .btn--ghost { color: var(--on-green); border-color: rgb(232 235 224 / 45%); }
+.analysevalg .btn--ghost:hover:not(:disabled) { color: #fff; border-color: var(--on-green); }
 
 @media (max-width: 640px) {
-  .analysevalg { align-items: stretch; flex-direction: column; }
+  .analysevalg__inner { align-items: stretch; flex-direction: column; }
   .analysevalg__knapper { width: 100%; }
   .analysevalg__knapper .btn { flex: 1; }
 }

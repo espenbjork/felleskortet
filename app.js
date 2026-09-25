@@ -530,7 +530,9 @@ function aktuellePoster() {
 
 function tegnForhandsvisning() {
   const poster = aktuellePoster();
-  $('#forhandsvisning').hidden = false;
+  const panel = $('#forhandsvisning');
+  const varSkjult = panel.hidden;
+  panel.hidden = false;
   $('#antall-funnet').textContent = String(poster.length);
   $('#sum-funnet').textContent = kr(poster.reduce((s, p) => s + p.belop, 0));
 
@@ -562,6 +564,10 @@ function tegnForhandsvisning() {
   tegnKolonnevalg();
   tegnMinnevalg(poster);
   $('#knapp-legg-til').disabled = poster.length === 0;
+
+  // På telefon havner forhåndsvisningen under skjermkanten. Rull fram bunnen
+  // av den, ellers ser det ut som ingenting skjedde da fila ble valgt.
+  if (varSkjult) panel.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
 function tegnKolonnevalg() {
